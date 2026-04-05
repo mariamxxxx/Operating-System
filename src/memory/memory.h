@@ -4,13 +4,22 @@
 #define MEMORY_SIZE 40
 #define MAX_STRING 256
 
+typedef enum
+{
+    VARIABLE,
+    CODE_LINE,
+    PCB_FIELD
+} WordType;
+
 typedef struct
 {
     char varName[MAX_STRING];
-    char value[MAX_STRING]; // content of var
+    char value[MAX_STRING];
     int ownerPid;
-    int isFree; // 1 if free, 0 if occupied
+    int isFree;
+    WordType type; // NEW
 } MemoryWord;
+// each process: 3 vars, code, pcb elements
 
 // "this exists somehwere else trust me"
 extern MemoryWord mem[MEMORY_SIZE];
