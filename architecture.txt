@@ -1,0 +1,35 @@
+Operating System/
+├── Makefile
+├── src/
+│   ├── main.c                         # Entry point: parses arguments, initializes OS, starts main loop.
+│   ├── disk/                          # Simulated disk storage (e.g., directory of swap files).
+│   ├── os/
+│   │   ├── os_core.h                  # Global OS structures (process table, queues, clock).
+│   │   ├── os_core.c                  # Main simulation loop, clock ticks, event triggering.
+│   │   ├── system_call.h              # System call interface (read/write file, print, input, memory access).
+│   │   └── system_call.c              # Implementation of system calls, calls into memory/disk/mutex modules.
+│   ├── process/
+│   │   ├── process.h                  # Process struct, PCB struct, state enum.
+│   │   ├── process.c                  # Process creation, destruction, state transitions, PCB management.
+│   │   └── pcb.h                      # PCB fields: pid, state, pc, mem_start, mem_end, burst_time, wait_time, etc.
+│   ├── scheduler/
+│   │   ├── scheduler.h                # Scheduler interface: init, schedule(), algorithm function pointers.
+│   │   ├── hrrn.c                     # HRRN non-preemptive implementation.
+│   │   ├── rr.c                       # Round Robin with time slice (2 instructions per slice).
+│   │   ├── mlfq.c                     # Multi-Level Feedback Queue (4 priority levels, quantum 2^i, last level RR).
+│   │   └── ready_queue.h              # Ready queue data structure (depends on scheduler).
+│   ├── memory/
+│   │   ├── memory.h                   # Memory size (40 words), allocation/deallocation functions.
+│   │   └── memory.c                   # Contiguous memory allocation, free block management.
+│   ├── interpreter/
+│   │   ├── parser.h                   # Reads program .txt, creates instruction list.
+│   │   ├── parser.c                   # Tokenizer, instruction creation (enum types: PRINT, ASSIGN, etc.).
+│   │   ├── interpreter.h              # Executes one instruction for current process.
+│   │   ├── interpreter.c              # Fetches opcode, operands; updates PC; calls system calls.
+│   ├── synchronization/
+│   │   ├── mutex.h                    # Mutex struct with lock flag and blocked process queue.
+│   │   └── mutex.c                    # semWait() and semSignal() implementation.
+│   └── gui/                           # Optional (bonus) – only if implemented with a C GUI library.
+│       ├── gui.h                      # Functions to display queues, memory, running process.
+│       └── gui_ncurses.c              # Example using ncurses for terminal-based visual.
+└── programs/                          # Provided .txt program files (program1.txt, program2.txt, program3.txt)

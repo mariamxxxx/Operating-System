@@ -26,3 +26,25 @@ int allocate_memory(int pid, int num_words);
 // clears any spot owned by pid, marks it as free
 // called during swap or when process finishes
 void free_process_memory(int pid);
+
+// finds matching varname for pid
+// returns value if found, else returns NULL
+char *read_word(int pid, char *varName);
+
+// Searches the slots owned by pid for a matching key and updates the value.
+// If not found, finds the next free slot in that process's range and writes a new entry.
+void write_word(int pid, char *key, char *value);
+
+// writes everyhing owned by pid to disk, marks slots as free
+// updates process state to SWAPPED
+void swap_out(int pid);
+
+// reads everything for pid from disk, marks slots as occupied
+void swap_in(int pid);
+
+// prints each mem
+// free slots are empty
+// owned slotsprint pid, var, value
+void print_memory();
+
+#endif
