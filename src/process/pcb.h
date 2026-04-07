@@ -3,13 +3,28 @@
 
 typedef enum
 {
-    NEW,
+    NEW, //may be commented hanshoof
     READY,
     RUNNING,
     BLOCKED,
     FINISHED,
-    SWAPPED_OUT
+    //SWAPPED_OUT
 } ProcessState;
+
+
+typedef struct{
+        int pid;
+        ProcessState state;
+        int pc;              // Program Counter
+        int mem_start;       // Memory Boundaries (Start) 
+        int mem_end;         // Memory Boundaries (End)
+            
+        // for scheduler:
+        int burst_time;      // Needed to calculate HRRN response ratio 
+        int wait_time;       // Needed to calculate HRRN response ratio
+    }PCB;
+
+
 
 // typedef struct {
 //     int pid;
@@ -23,4 +38,6 @@ typedef enum
 //     int waiting_time;      // accumulated waiting time
 // } PCB;
 
-#endif
+
+
+    #endif
