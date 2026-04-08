@@ -48,3 +48,12 @@ void print_all_queues() {
     printf("]\n");
     //printf("---------------------------\n\n");
 }
+
+PCB* schedule_next_process(SchedulerAlgorithm algo) {
+    switch(algo) {
+        case RR:   return execute_round_robin();
+        case HRRN: return execute_hrrn();
+        case MLFQ: return execute_mlfq();
+        default: return NULL;
+    }
+}

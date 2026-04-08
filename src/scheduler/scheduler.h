@@ -19,8 +19,12 @@ void print_all_queues();
 PCB* schedule_next_process(SchedulerAlgorithm algo);
 
 // the specific algorithms in rr.c, hrrn.c, and mlfq.c
+extern ReadyQueue mlfq_queues[4];
+
+void init_scheduler();
+PCB* execute_mlfq();
 PCB* execute_round_robin();
 PCB* execute_hrrn();
-PCB* execute_mlfq(ReadyQueue queues[4]);
+//PCB* execute_mlfq(ReadyQueue queues[4]);
 
 #endif
