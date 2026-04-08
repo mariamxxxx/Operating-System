@@ -40,12 +40,21 @@ char* takeInput(){ //take input from user
     return input;
 }
 
-char* readFromMemory(){//read data from memory
-//where do i read from? what index do i use to find what i need to read?
-// do i take any input? how do i know what i want to read?
+char* readFromMemory(int pid, char* varName){//read data from memory
+//ASSUMING READ_WORD WILL BE IMPLEMENTED IN MEMORY.C
+    char* res= read_word(pid, varName);
+
+    if (res==NULL){
+        printf("Variable %s not found in memory for process id %d\n", varName, pid);
+        return NULL;}
+
+    printf("Variable %s found in memory for process id %d with value: %s\n", varName,pid, res);
+    return res;
+
 }
 
-void writetoMemory(char* value){ //write data to memory
-//where do i write to? what index do i use to find where i need to write?
-// do i take any input? where do i store it?
+void writeToMemory(int pid, char* varName, char* varValue){ //write data to memory
+//ASSUMING WRITE__WORD WILL BE IMPLEMENTED IN MEMORY.C
+    write_word(pid, varName, varValue);
+    printf("Variable %s with value %s written to memory for process id %d\n", varName, varValue, pid);
 }
