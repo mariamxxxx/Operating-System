@@ -35,3 +35,29 @@ PCB* dequeue(ReadyQueue *q) {
     q->size--;
     return process;
 }
+
+
+void remove_from_queue(ReadyQueue *q, PCB *target) {
+    if (q->head == NULL || target == NULL) return;
+
+    // if the target is the head
+    if (q->head->process == target) {
+        dequeue(q);
+        return;
+    }
+
+    QueueNode *current = q->head;
+    while (current->next != NULL && current->next->process != target) {
+        current = current->next;
+    }
+
+    if (current->next != NULL) {
+        QueueNode *temp = current->next;
+        current->next = temp->next;
+        if (temp == q->tail) {
+            q->tail = current;
+        }
+        free(temp);
+        q->size--;
+    }
+}

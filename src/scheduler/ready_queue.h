@@ -20,5 +20,6 @@ void init_queue(ReadyQueue *q);
 void enqueue(ReadyQueue *q, PCB *process);
 PCB* dequeue(ReadyQueue *q);
 int is_empty(ReadyQueue *q);
+void remove_from_queue(ReadyQueue *q, PCB *target);
 
 #endif
