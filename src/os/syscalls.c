@@ -1,3 +1,7 @@
+#include <stdio.h>  // For FILE, fopen, printf, fgets, fprintf
+#include <stdlib.h> // For malloc, free
+#include <string.h> // For strlen
+
 char* readFile(char* filename){ //read file
     FILE* f= fopen(filename,"r");
     if(f==NULL){
