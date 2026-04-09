@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <pcb.h>
 
 enum RESOURCE {
     USER_INPUT,
@@ -61,12 +62,13 @@ CircularQueue blockedQueue;
 CircularQueue blockedQueues[3];
 CircularQueue readyQueue;
 
-void semWait(int program, enum RESOURCE r){
+void semWait(PCB* program, enum RESOURCE r){
     if(binSem[r]==1)
         binSem[r]=0;
     else{
         enqueue(&blockedQueue, program);
         enqueue(&blockedQueues[r], program);
+        program -> state = BLOCKED; 
     }
 }
 
