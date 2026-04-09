@@ -16,9 +16,7 @@ char* substring(const char* src, int start, int length) {
     return sub;   // caller must free()
 }
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+
 
 char** splitAndReverse(const char* str, int* count) {
     char* copy = strdup(str);   // make modifiable copy
