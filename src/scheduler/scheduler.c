@@ -51,7 +51,18 @@ void print_all_queues() {
     printf("]\n");
 }
 }
-    //printf("---------------------------\n\n");
+}
+
+
+void add_process_to_scheduler(PCB *process) {
+    process->state = READY;
+    if (current_algo == MLFQ) {
+        enqueue(&mlfq_queues[0], process); // new processes start at highest priority
+    } else {
+        enqueue(&os_ready_queue, process);
+    }
+
+    
 }
 
 PCB* schedule_next_process(SchedulerAlgorithm algo) {
@@ -62,4 +73,8 @@ PCB* schedule_next_process(SchedulerAlgorithm algo) {
         case MLFQ: return execute_mlfq();
         default: return NULL;
     }
+}
+
+SchedulerAlgorithm get_current_algo() {
+    return current_algo;
 }

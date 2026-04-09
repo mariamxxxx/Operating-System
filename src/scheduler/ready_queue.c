@@ -67,3 +67,7 @@ void remove_from_queue(ReadyQueue *q, PCB *target) {
         q->size--;
     }
 }
+
+int is_empty(ReadyQueue *q) {
+    return q->head == NULL;
+}
