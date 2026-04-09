@@ -68,7 +68,7 @@ void semWait(PCB* program, enum RESOURCE r){
     else{
         enqueue(&blockedQueue, program);
         enqueue(&blockedQueues[r], program);
-        program -> state = BLOCKED; // Assuming you have a process structure with a state field
+        program -> state = BLOCKED; 
     }
 }
 
