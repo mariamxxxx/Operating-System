@@ -2,20 +2,22 @@
 #include "../interpreter/interpreter.h" //interpreter from heba
 #include <stdio.h>
 PCB*execute_hrrn(){
-    PCB *current_process = dequeue(&os_ready_queue);
-    if (current_process == NULL) {
+    // PCB *current_process = dequeue(&os_ready_queue);
+    printf("Executing Highest Respose Rate Algorithm");
+    if (os_ready_queue.head == NULL) {
         printf("Scheduler: no proccesses in the ready queue\n");
         return NULL; // no processes ready to run
     }
+    
     QueueNode *current = os_ready_queue.head;
+   
     PCB *best_pcb = NULL;//the chosen process
     double myrate = -1.0;
 
+    //pick the chosen process 
     while (current != NULL) {
         PCB *p = current->process;
-        
         double ratio = (double)(p->wait_time + p->burst_time) / p->burst_time;
-        
         if (ratio > myrate) {
             myrate = ratio;
             best_pcb = p;
@@ -23,7 +25,7 @@ PCB*execute_hrrn(){
         current = current->next;
     }
 
-    // Remove the selected process from the middle of the queue
+    //Remove the selected process from the middle of the queue
     remove_from_queue(&os_ready_queue, best_pcb);
  
     best_pcb->state = RUNNING;
@@ -31,10 +33,11 @@ PCB*execute_hrrn(){
     print_all_queues(); 
 
     // run until it finishes or blocks
+    int inst_count=0;
     while (best_pcb->state == RUNNING) {
         printf("Running Process %d | PC: %d\n", best_pcb->pid, best_pcb->pc);
-        
         execute_instruction(best_pcb); //form heba
+        inst_count++;
 
         if (best_pcb->state == FINISHED) {
             printf("Process %d has finished.\n", best_pcb->pid);
@@ -46,6 +49,11 @@ PCB*execute_hrrn(){
            print_all_queues(); 
            break;
         }
+    }
+    QueueNode *curr= os_ready_queue.head;
+    while(curr!=NULL){
+        curr->process->wait_time+= inst_count;
+        curr=curr->next;
     }
 
     return best_pcb;

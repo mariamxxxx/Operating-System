@@ -1,28 +1,18 @@
 #include "scheduler.h"
-#include <stddef.h> // for null pointer 
+#include <stddef.h> //for null pointer 
 
-// the global queue for the whole OS
-ReadyQueue os_ready_queue;
+//the global queues for the whole OS
+ ReadyQueue os_ready_queue;
+ ReadyQueue general_blocked_queue; 
+
+static SchedulerAlgorithm current_algo;
 
 void init_scheduler() {
     init_queue(&os_ready_queue);
-}
+    init_queue(&general_blocked_queue);
+    init_mlfq();
+} //will be called in the main implemetation
 
-PCB* schedule_next_process(SchedulerAlgorithm algo) {
-    if (algo == RR) {
-        return execute_round_robin();
-    } else if (algo == HRRN) {
-        return execute_hrrn();
-    }
-    return NULL; 
-}
-#include "scheduler.h"
-#include <stdio.h>
-
-// Assuming your friend's blocked queues are accessible 
-// and use the same QueueNode structure.
-extern ReadyQueue os_ready_queue;
-extern ReadyQueue general_blocked_queue; 
 
 void print_all_queues() {
     printf("\n--- SYSTEM QUEUE STATUS ---\n");
@@ -46,14 +36,45 @@ void print_all_queues() {
         current = current->next;
     }
     printf("]\n");
-    //printf("---------------------------\n\n");
+
+    //for mlfq
+
+    if(get_current_algo()==MLFQ){
+    for (int i = 0; i < 4; i++) {
+    printf("MLFQ Queue %d: [", i);
+    QueueNode *curr = mlfq_queues[i].head;
+    while (curr != NULL) {
+        printf("P%d", curr->process->pid);
+        if (curr->next != NULL) printf(", ");
+        curr = curr->next;
+    }
+    printf("]\n");
+}
+}
+}
+
+
+void add_process_to_scheduler(PCB *process) {
+    process->state = READY;
+    if (current_algo == MLFQ) {
+        enqueue(&mlfq_queues[0], process); // new processes start at highest priority
+    } else {
+        enqueue(&os_ready_queue, process);
+    }
+
+    
 }
 
 PCB* schedule_next_process(SchedulerAlgorithm algo) {
+    current_algo=algo;
     switch(algo) {
         case RR:   return execute_round_robin();
         case HRRN: return execute_hrrn();
         case MLFQ: return execute_mlfq();
         default: return NULL;
     }
+}
+
+SchedulerAlgorithm get_current_algo() {
+    return current_algo;
 }

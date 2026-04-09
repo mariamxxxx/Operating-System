@@ -7,6 +7,11 @@ void init_queue(ReadyQueue *q) {
     q->tail = NULL;
     q->size = 0;
 }
+// void init_mlfq() {
+//     for (int i = 0; i < 4; i++) {
+//         init_queue(&mlfq_queues[i]);
+//     }
+// }
 
 void enqueue(ReadyQueue *q, PCB *process) {
     QueueNode *newNode = (QueueNode*)malloc(sizeof(QueueNode));
@@ -37,6 +42,7 @@ PCB* dequeue(ReadyQueue *q) {
 }
 
 
+//for hrrn
 void remove_from_queue(ReadyQueue *q, PCB *target) {
     if (q->head == NULL || target == NULL) return;
 
@@ -60,4 +66,8 @@ void remove_from_queue(ReadyQueue *q, PCB *target) {
         free(temp);
         q->size--;
     }
+}
+
+int is_empty(ReadyQueue *q) {
+    return q->head == NULL;
 }
