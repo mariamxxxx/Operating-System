@@ -1,8 +1,19 @@
 #ifndef MEMORY_H
-#define MEMORY_H
 
+#include "processs.h"
+
+#define MEMORY_H
 #define MEMORY_SIZE 40
-#define MAX_STRING 256
+#define MAX_STRING 1024
+
+// for index
+typedef struct
+{
+    int pid;
+    int start_index;
+    int word_count;
+} MapEntry;
+
 
 typedef enum
 {
@@ -13,16 +24,22 @@ typedef enum
 
 typedef struct
 {
-    char varName[MAX_STRING];
-    char value[MAX_STRING];
     int ownerPid;
     int isFree;
     WordType type; // NEW
+    union
+    {
+        int pid;
+        ProcessState state;
+        int program_counter;
+        int memory_boundary[2];
+        ProcessVar var;
+        char code_line[MAX_STRING];
+    } payload;
+
 } MemoryWord;
 // each process: 3 vars, code, pcb elements
 
-// "this exists somehwere else trust me"
-extern MemoryWord mem[MEMORY_SIZE];
 
 // frees all slots, sets owner_pids to 0
 void init_memory();
