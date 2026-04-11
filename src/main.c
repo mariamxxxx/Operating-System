@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "process/pcb.h"
 #include "scheduler/scheduler.h"
 #include "synchronization/mutex.h"
 #include "interpreter/interpreter.h"
+#include "memory/memoryy.h"
+#include "process/processs.h"
 
 int main() {
     printf("========================================\n");
@@ -48,5 +51,17 @@ int main() {
     // printf("  All Tests Completed Successfully!\n");
     // printf("========================================\n");
 
+    return 0;
+}
+
+void controller(FILE *input_file){
+    
+}
+
+int main() {
+    init_memory();
+
+    // add file 1
+    controller();
     return 0;
 }

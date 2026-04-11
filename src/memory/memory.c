@@ -8,12 +8,63 @@
 #define SWAP_DIR "src/disk"
 MemoryWord mem[MEMORY_SIZE];
 
-// HELPERS
+// CALLED OUTSIDE
+void update_state_in_memory(int pid, ProcessState *state) {
+    int start = -1;
+    for (int i = 0; i < map_i; i++) {
+        if (memory_map[i].pid == pid) {
+            start = memory_map[i].start_index;
+            break;
+        }
+    }
+    if (start == -1) return;
 
+    mem[start + 1].payload.state = *state;
+}
+
+void update_pc_in_memory(int pid, int pc) {
+    int start = -1;
+    for (int i = 0; i < map_i; i++) {
+        if (memory_map[i].pid == pid) {
+            start = memory_map[i].start_index;
+            break;
+        }
+    }
+    if (start == -1) return;
+
+    mem[start + 2].payload.program_counter = pc;
+}
+
+void free_process_memory(int pid){
+    for (int i = 0; i < MEMORY_SIZE; i++){
+        if (mem[i].ownerPid == pid){
+            mem[i].isFree = 1;
+            mem[i].ownerPid = -1;
+        }
+    }
+    for (int i = 0; i < map_i; i++){
+        if (memory_map[i].pid == pid){
+            delete_memory_map_entry(pid, i); 
+            break;
+        }
+    }
+    // can add delete here but more redundant
+}
+
+Process get_process_from_memory(int pid){
+    Process proc;
+    memset(&proc, 0, sizeof(Process)); // initialize all fields to 0/NULL
+
+
+}
+
+
+// HELPERS
 // build the file path for the swap file of a given PID.
 static void build_swap_path(int pid, char *out, size_t out_size){
     snprintf(out, out_size, "%s/pid_%d.swap", SWAP_DIR, pid);
 }
+
 
 // index for all memory entries
 static MapEntry memory_map[MEMORY_SIZE / 2]; 
@@ -112,14 +163,23 @@ void update_pcb_in_memory(int pid, PCB *pcb) {
     mem[start + 3].payload.memory_boundary[1] = pcb->memory_bounds[1];
 }
 
-// MAIN FUNCTIONS
+void CountLines(char* rawData) {
+    int countLines = 0 ;
+    char* line = strtok(rawData, "\n"); // Get first line
+    while (line != NULL) {
+        countLines++;
+        line = strtok(NULL, "\n"); // Get next line
+    }
 
+}
+
+
+// MAIN FUNCTIONS
 // initialize memory
 void init_memory(){
     for (int i = 0; i < MEMORY_SIZE; i++){
         mem[i].isFree = 1;
         mem[i].ownerPid = -1;
-        mem[i].type = VARIABLE;
         memset(&mem[i].payload, 0, sizeof(mem[i].payload));
     }
 }
@@ -146,7 +206,7 @@ int allocate_memory(int pid, Process *proc){
     idx++;
 
     mem[idx].type = PCB_FIELD;
-    mem[idx].payload.program_counter = proc->pcb->pc;
+    mem[idx].payload.program_counter = start_index + 7; // point to first code line
     idx++;
 
     mem[idx].type = PCB_FIELD;
@@ -188,24 +248,6 @@ int allocate_memory(int pid, Process *proc){
     return start_index;
 }
 
-void free_process_memory(int pid)
-{
-    for (int i = 0; i < MEMORY_SIZE; i++){
-        if (mem[i].ownerPid == pid){
-            mem[i].isFree = 1;
-            mem[i].ownerPid = -1;
-            mem[i].type = VARIABLE;
-            memset(&mem[i].payload, 0, sizeof(mem[i].payload));
-        }
-    }
-    for (int i = 0; i < map_i; i++){
-        if (memory_map[i].pid == pid){
-            delete_memory_map_entry(pid, i);
-            break;
-        }
-    }
-    // can add delte here but more redundant
-}
 
 // read a variable's value from memory for a given PID and variable name. Returns NULL if not found.
 char *read_word(int pid, char *varName)
@@ -255,8 +297,7 @@ void write_word(int pid, char *key, char *value){
     }
 }
 
-void swap_out(int pid, int word_count)
-{
+void swap_out(int pid, int word_count){
     if (word_count == 0)
         return;
     

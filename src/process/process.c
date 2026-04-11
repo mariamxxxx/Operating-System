@@ -1,4 +1,5 @@
 #include "processs.h"
+#include "memory/memoryy.h"
 #include <stdlib.h>
 
 int next_pid = 1; // Start IDs at 1
@@ -31,5 +32,6 @@ PCB* create_process(int mem_start, int mem_end, int burst_time) {
 void destroy_process(PCB* p) {
     if (p != NULL) {
         free(p);
+
     }
 }
