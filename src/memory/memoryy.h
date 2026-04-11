@@ -1,8 +1,19 @@
 #ifndef MEMORY_H
-#define MEMORY_H
 
+#include "processs.h"
+
+#define MEMORY_H
 #define MEMORY_SIZE 40
-#define MAX_STRING 256
+#define MAX_STRING 1024
+
+// for index
+typedef struct
+{
+    int pid;
+    int start_index;
+    int word_count;
+} MapEntry;
+
 
 typedef enum
 {
@@ -13,24 +24,29 @@ typedef enum
 
 typedef struct
 {
-    char varName[MAX_STRING];
-    char value[MAX_STRING];
     int ownerPid;
     int isFree;
     WordType type; // NEW
+    union
+    {
+        int pid;
+        ProcessState state;
+        int program_counter;
+        int memory_boundary[2];
+        ProcessVar var;
+        char code_line[MAX_STRING];
+    } payload;
+
 } MemoryWord;
 // each process: 3 vars, code, pcb elements
 
-// "this exists somehwere else trust me"
-extern MemoryWord mem[MEMORY_SIZE];
 
 // frees all slots, sets owner_pids to 0
 void init_memory();
 
-// finds contiguous block of num_words,
-// marks them as owned by pid
+// finds contiguous block for a process and writes its fields into memory
 // returns -1 if no space is found
-int allocate_memory(int pid, int num_words);
+int allocate_memory(int pid, Process *proc);
 
 // clears any spot owned by pid, marks it as free
 // called during swap or when process finishes
