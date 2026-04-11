@@ -71,7 +71,7 @@ static void test_many_blocked_waiters_fifo(void){
         assert(binSem[USER_INPUT] == 0);
     }
 
-    assert(is_empty(&blockedQueue));
+    assert(is_empty(&general_blocked_queue));
     assert(is_empty(&blockedQueues[USER_INPUT]));
 
     semSignal(USER_INPUT);
@@ -86,7 +86,7 @@ static void test_invalid_resource_is_ignored(void){
     assert(binSem[USER_INPUT] == 1);
     assert(binSem[USER_OUTPUT] == 1);
     assert(binSem[FILE_RESOURCE] == 1);
-    assert(is_empty(&blockedQueue));
+    assert(is_empty(&general_blocked_queue));
 
     semSignal((enum RESOURCE)-1);
     assert(binSem[USER_INPUT] == 1);
@@ -165,7 +165,7 @@ static void assert_mutex_invariants(void){
         }
     }
 
-    assert_queue_state_matches_process_state(&blockedQueue, BLOCKED);
+    assert_queue_state_matches_process_state(&general_blocked_queue, BLOCKED);
 }
 
 static void test_randomized_fuzz_sequence(void){

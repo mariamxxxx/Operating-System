@@ -40,7 +40,7 @@ static void test_semwait_acquire_free_resource(void){
 
     assert(binSem[USER_INPUT] == 0);
     assert(p1.state == READY);
-    assert(is_empty(&blockedQueue));
+    assert(is_empty(&general_blocked_queue));
     assert(is_empty(&blockedQueues[USER_INPUT]));
 }
 
@@ -53,7 +53,7 @@ static void test_semwait_blocks_when_taken(void){
     semWait(&waiter, USER_OUTPUT);
 
     assert(waiter.state == BLOCKED);
-    assert(!is_empty(&blockedQueue));
+    assert(!is_empty(&general_blocked_queue));
     assert(!is_empty(&blockedQueues[USER_OUTPUT]));
 }
 
@@ -67,16 +67,16 @@ static void test_semwait_same_process_not_enqueued_twice(void){
     semWait(&waiter, USER_INPUT);
 
     assert(waiter.state == BLOCKED);
-    assert(blockedQueue.size == 1);
+    assert(general_blocked_queue.size == 1);
     assert(blockedQueues[USER_INPUT].size == 1);
 
     semSignal(USER_INPUT);
 
     assert(waiter.state == READY);
-    assert(blockedQueue.size == 0);
+    assert(general_blocked_queue.size == 0);
     assert(blockedQueues[USER_INPUT].size == 0);
 
-    assert(is_empty(&blockedQueue));
+    assert(is_empty(&general_blocked_queue));
     assert(is_empty(&blockedQueues[USER_INPUT]));
 }
 
@@ -90,7 +90,7 @@ static void test_semsignal_unblocks_one_process(void){
     semSignal(FILE_RESOURCE);
 
     assert(waiter.state == READY);
-    assert(is_empty(&blockedQueue));
+    assert(is_empty(&general_blocked_queue));
     assert(is_empty(&blockedQueues[FILE_RESOURCE]));
     assert(!is_empty(&readyQueue));
     assert(dequeue(&readyQueue) == &waiter);
@@ -105,7 +105,7 @@ static void test_semsignal_releases_when_no_waiters(void){
     semSignal(USER_INPUT);
 
     assert(binSem[USER_INPUT] == 1);
-    assert(is_empty(&blockedQueue));
+    assert(is_empty(&general_blocked_queue));
     assert(is_empty(&blockedQueues[USER_INPUT]));
 }
 
@@ -116,7 +116,7 @@ static void test_repeated_signal_on_free_resource_is_stable(void){
     semSignal(USER_OUTPUT);
 
     assert(binSem[USER_OUTPUT] == 1);
-    assert(is_empty(&blockedQueue));
+    assert(is_empty(&general_blocked_queue));
     assert(is_empty(&blockedQueues[USER_OUTPUT]));
 }
 
@@ -150,7 +150,7 @@ static void test_init_mutex_resets_all_state(void){
     assert(binSem[USER_INPUT] == 1);
     assert(binSem[USER_OUTPUT] == 1);
     assert(binSem[FILE_RESOURCE] == 1);
-    assert(is_empty(&blockedQueue));
+    assert(is_empty(&general_blocked_queue));
     assert(is_empty(&blockedQueues[USER_INPUT]));
     assert(is_empty(&blockedQueues[USER_OUTPUT]));
     assert(is_empty(&blockedQueues[FILE_RESOURCE]));
