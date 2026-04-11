@@ -3,7 +3,7 @@
 
 typedef enum
 {
-   // NEW, //may be commented hanshoof
+    NEW,   //may be commented hanshoof
     READY,
     RUNNING,
     BLOCKED,

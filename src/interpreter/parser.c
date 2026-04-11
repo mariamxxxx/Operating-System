@@ -2,7 +2,7 @@
 #include <stdlib.h> // For malloc, free
 #include <string.h> // For strlen
 
-
+int countLines =0;
 
 char* AvailableFunctions [] = {
     "semWait", "semSignal", "assign", "print", "printFromTo","writeFile","readFile"
@@ -37,10 +37,16 @@ void parseInstructionsIntoMemory(char* rawData) {
 
         writetoMemory(instruction);
 
+        countLines++;
+
         line = strtok(NULL, "\n"); // Get next line
     }
 
     free(rawData); 
+}
+
+int CountLinesInFile() {
+    return countLines;
 }
 
 char* parseLineToOpcode(char* line) {
