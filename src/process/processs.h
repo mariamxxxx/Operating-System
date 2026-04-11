@@ -2,18 +2,15 @@
 #define PROCESS_H
 
 #include "pcb.h"
-#include "memory/memoryy.h"
+#include "../memory/memoryy.h"
 
 extern int next_pid;
-
 #define MAX_CODE_LINES 30
 
-typedef struct
-{
+typedef struct {
     char name[MAX_STRING];
     char value[MAX_STRING];
 } ProcessVar;
-
 
 typedef struct {
     PCB* pcb;
