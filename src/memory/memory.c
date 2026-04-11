@@ -93,6 +93,8 @@ void init_memory(){
     for (int i = 0; i < MEMORY_SIZE; i++){
         mem[i].isFree = 1;
         mem[i].ownerPid = -1;
+        mem[i].type = VARIABLE;
+        memset(&mem[i].payload, 0, sizeof(mem[i].payload));
     }
 }
 
@@ -101,7 +103,7 @@ int allocate_memory(int pid, Process *proc){
     int code_lines = (sizeof(proc->code_lines) / sizeof(proc->code_lines[0]));
     int num_words = 7 + code_lines; 
     int start_index = allocate_block(pid, num_words);
-    if (start_index == -1)
+    if (start_index == -1 || proc->pcb == NULL)
         return -1;
     
 
@@ -109,32 +111,32 @@ int allocate_memory(int pid, Process *proc){
 
     int idx = start_index;
     mem[idx].type = PCB_FIELD;
-    mem[idx].payload.pid = proc->pcb.pid;
+    mem[idx].payload.pid = proc->pcb->pid;
     idx++;
 
     mem[idx].type = PCB_FIELD;
-    mem[idx].payload.state = proc->pcb.state;
+    mem[idx].payload.state = proc->pcb->state;
     idx++;
 
     mem[idx].type = PCB_FIELD;
-    mem[idx].payload.program_counter = proc->pcb.pc;
+    mem[idx].payload.program_counter = proc->pcb->pc;
     idx++;
 
     mem[idx].type = PCB_FIELD;
-    mem[idx].payload.memory_boundary[0] = proc->pcb.memory_bounds[0];
-    mem[idx].payload.memory_boundary[1] = proc->pcb.memory_bounds[1];
+    mem[idx].payload.memory_boundary[0] = proc->pcb->memory_bounds[0];
+    mem[idx].payload.memory_boundary[1] = proc->pcb->memory_bounds[1];
     idx++;
 
     mem[idx].type = VARIABLE;
-    mem[idx].payload.var = proc->var1;
+    mem[idx].payload.var = *proc->var1;
     idx++;
 
     mem[idx].type = VARIABLE;
-    mem[idx].payload.var = proc->var2;
+    mem[idx].payload.var = *proc->var2;
     idx++;
 
     mem[idx].type = VARIABLE;
-    mem[idx].payload.var = proc->var3;
+    mem[idx].payload.var = *proc->var3;
     idx++;
 
     for (int i = 0; i < code_lines; i++){
@@ -153,6 +155,8 @@ void free_process_memory(int pid)
         if (mem[i].ownerPid == pid){
             mem[i].isFree = 1;
             mem[i].ownerPid = -1;
+            mem[i].type = VARIABLE;
+            memset(&mem[i].payload, 0, sizeof(mem[i].payload));
         }
     }
     for (int i = 0; i < map_i; i++){

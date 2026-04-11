@@ -62,7 +62,7 @@ void write_word(int pid, char *key, char *value);
 
 // writes everyhing owned by pid to disk, marks slots as free
 // updates process state to SWAPPED
-void swap_out(int pid);
+void swap_out(int pid, int word_count);
 
 // reads everything for pid from disk, marks slots as occupied
 void swap_in(int pid);

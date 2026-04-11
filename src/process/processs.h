@@ -15,10 +15,10 @@ typedef struct
 } ProcessVar;
 
 typedef struct {
-    PCB pcb;
-    ProcessVar var1;
-    ProcessVar var2;
-    ProcessVar var3;
+    PCB* pcb;
+    ProcessVar* var1;
+    ProcessVar* var2;
+    ProcessVar* var3;
     char code_lines[MAX_CODE_LINES][MAX_STRING];
 } Process;
 
