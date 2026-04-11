@@ -72,5 +72,6 @@ void swap_in(int pid);
 // free slots are empty
 // owned slotsprint pid, var, value
 void print_memory();
+void CountLines(char* rawData);
 
 #endif
