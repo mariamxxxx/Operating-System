@@ -44,9 +44,10 @@ typedef struct
 // frees all slots, sets owner_pids to 0
 void init_memory();
 
-// finds contiguous block for a process and writes its fields into memory
+// finds contiguous block of num_words,
+// marks them as owned by pid
 // returns -1 if no space is found
-int allocate_memory(int pid, Process *proc);
+int allocate_memory(int pid, int num_words);
 
 // clears any spot owned by pid, marks it as free
 // called during swap or when process finishes
@@ -62,7 +63,7 @@ void write_word(int pid, char *key, char *value);
 
 // writes everyhing owned by pid to disk, marks slots as free
 // updates process state to SWAPPED
-void swap_out(int pid, int word_count);
+void swap_out(int pid);
 
 // reads everything for pid from disk, marks slots as occupied
 void swap_in(int pid);
