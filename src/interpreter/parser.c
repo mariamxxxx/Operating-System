@@ -1,8 +1,14 @@
 #include <stdio.h>  // For FILE, fopen, printf, fgets, fprintf
 #include <stdlib.h> // For malloc, free
 #include <string.h> // For strlen
+#include "../process/processs.h"
+#include "../scheduler/scheduler.h"
+#include "../scheduler/queue.h"
 
-int countLines =0;
+
+
+int pid_int = 1; // Global variable to hold the PID for the process being initialized
+
 
 char* AvailableFunctions [] = {
     "semWait", "semSignal", "assign", "print", "printFromTo","writeFile","readFile"
@@ -26,26 +32,19 @@ char* SplitInstruction(char* line) {
     return tokens;
 }
 
-void parseInstructionsIntoMemory(char* rawData) {
-    
+int CountLines(char* rawData) {
+
+    int countLines =0;
 
     char* line = strtok(rawData, "\n"); // Get first line
     
     while (line != NULL) {
-
-        char* instruction = parseLineToOpcode(line); 
-
-        writetoMemory(instruction);
 
         countLines++;
 
         line = strtok(NULL, "\n"); // Get next line
     }
 
-    free(rawData); 
-}
-
-int CountLinesInFile() {
     return countLines;
 }
 
@@ -99,3 +98,43 @@ char* parseLineToOpcode(char* line) {
     return result;
 }
 
+void parseInstructionsIntoMemory(char* rawData) {
+
+    char* line = strtok(rawData, "\n"); // Get first line
+    
+    while (line != NULL) {
+
+        char* instruction = parseLineToOpcode(line); 
+
+        writetoMemory(instruction);
+
+        line = strtok(NULL, "\n"); // Get next line
+    }
+
+    free(rawData); 
+}
+
+extern void loadAndInterpret(char* filename) { 
+    if (filename == NULL) {
+        printf("[ERROR] Filename is NULL. Cannot proceed.\n");
+        return;
+    }
+    
+    char* fileContent = readFile(filename);
+       
+    if (fileContent == NULL) {
+        printf("[ERROR] Could not load %s - readFile returned NULL\n", filename);
+        printf("[ERROR] File may not exist or read permission denied.\n");
+        return;
+    }
+
+    Process * process = initProcess(pid_int, CountLines(fileContent)); // Initialize process with PID and line count
+
+    enqueue(&(process ->pcb), &os_ready_queue); // ma na5od el process kolahaaaa
+
+    pid_int++; // Increment global PID for next process
+    
+    parseInstructionsIntoMemory(fileContent);
+    
+    free(fileContent);
+}

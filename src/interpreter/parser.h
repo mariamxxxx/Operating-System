@@ -1,0 +1,1 @@
+extern void loadAndInterpret(char* filename);
