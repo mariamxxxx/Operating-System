@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <math.h>
 
-ReadyQueue mlfq_queues[4];
+Queue mlfq_queues[4];
 
 void init_mlfq() {
     for (int i = 0; i < 4; i++) {
