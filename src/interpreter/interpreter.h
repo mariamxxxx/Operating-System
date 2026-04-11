@@ -5,7 +5,6 @@
 
 char* substring(const char* src, int start, int length);
 char** splitAndReverse(const char* str, int* count);
-extern void loadAndInterpret(char* filename);
 void callSemWait(PCB * process , int resourceType);
 void callSemSignal(int resourceType);
 void callAssign(int pid , char* varName, char* varValue);
