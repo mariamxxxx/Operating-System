@@ -1,8 +1,8 @@
 #include <stdio.h>
-#include <pcb.h>
 #include "mutex.h"
-#include "scheduler.h"
-
+#include "../process/pcb.h"
+#include "../scheduler/queue.h"
+#include "../scheduler/scheduler.h"
 
 // void initQueue(CircularQueue *q){
 //     q-> front= -1;
