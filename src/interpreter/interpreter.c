@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "syscalls.h"  // For readFile
-#include "memory.h"    // For your memory functions
+#include "memoryy.h"    // For your memory functions
 #include "parser.h"    // For your parsing logic
 #include "pcb.h"    // For PCB structure
 #include "mutex.h"  // For semaphore operations
@@ -45,43 +45,27 @@ char** splitAndReverse(const char* str, int* count) {
 }
 
 extern void loadAndInterpret(char* filename) {
-    printf("\n===========================================\n");
-    printf("[INTERPRETER] Starting loadAndInterpret()\n");
-    printf("===========================================\n");
-    
-    printf("[DEBUG] Filename parameter: %s\n", filename);
-    printf("[DEBUG] Checking if filename is NULL...\n");
+   
     
     if (filename == NULL) {
         printf("[ERROR] Filename is NULL. Cannot proceed.\n");
         return;
     }
     
-    printf("[DEBUG] Filename is valid. Attempting to read file...\n");
     char* fileContent = readFile(filename);
-    printf("[DEBUG] readFile() completed.\n");
     
     if (fileContent == NULL) {
         printf("[ERROR] Could not load %s - readFile returned NULL\n", filename);
         printf("[ERROR] File may not exist or read permission denied.\n");
         return;
     }
-    
-    printf("[SUCCESS] File %s loaded successfully.\n", filename);
-    printf("[DEBUG] File content pointer: %p\n", (void*)fileContent);
-    printf("[DEBUG] Beginning content: %.50s...\n", fileContent);
-    
-    printf("[DEBUG] Starting parseInstructionsIntoMemory()...\n");
+
+    CountLines(fileContent);
+
     parseInstructionsIntoMemory(fileContent);
-    printf("[DEBUG] parseInstructionsIntoMemory() completed successfully.\n");
     
-    printf("[DEBUG] Freeing file content memory at address %p\n", (void*)fileContent);
     free(fileContent);
-    printf("[DEBUG] Memory freed successfully.\n");
     
-    printf("[SUCCESS] Program %s successfully loaded into memory.\n", filename);
-    printf("[DEBUG] loadAndInterpret() execution completed.\n");
-    printf("===========================================\n\n");
 }
 
 void callSemWait(PCB * process , int resourceType){

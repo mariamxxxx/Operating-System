@@ -339,3 +339,19 @@ void print_memory(){
         }
     }
 }
+
+
+void CountLines(char* rawData) {
+    
+    int countLines = 0 ;
+
+    char* line = strtok(rawData, "\n"); // Get first line
+    
+    while (line != NULL) {
+
+        countLines++;
+
+        line = strtok(NULL, "\n"); // Get next line
+    }
+
+}
