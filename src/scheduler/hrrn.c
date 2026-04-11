@@ -1,5 +1,5 @@
 #include "scheduler.h"
-#include "../interpreter/interpreter.h" //interpreter from heba
+#include "../interpreter/interpreter.h"
 #include <stdio.h>
 PCB*execute_hrrn(){
     // PCB *current_process = dequeue(&os_ready_queue);

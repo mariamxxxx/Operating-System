@@ -2,8 +2,8 @@
 #include <stddef.h> //for null pointer 
 
 //the global queues for the whole OS
- ReadyQueue os_ready_queue;
- ReadyQueue general_blocked_queue; 
+ Queue os_ready_queue;
+ Queue general_blocked_queue; 
 
 static SchedulerAlgorithm current_algo;
 
