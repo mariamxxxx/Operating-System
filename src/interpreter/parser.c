@@ -92,3 +92,4 @@ char* parseLineToOpcode(char* line) {
 
     return result;
 }
+

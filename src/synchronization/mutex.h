@@ -2,8 +2,8 @@
 #ifndef MUTEX_H
 #define MUTEX_H
 
-#include <pcb.h>
-#include "queue.h"
+#include "../process/pcb.h"
+#include "../scheduler/queue.h"
 
 enum RESOURCE {
 	USER_INPUT,
