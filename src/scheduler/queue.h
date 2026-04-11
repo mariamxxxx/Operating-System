@@ -1,5 +1,5 @@
-#ifndef READY_QUEUE_H
-#define READY_QUEUE_H
+#ifndef QUEUE_H
+#define QUEUE_H
 
 #include "../process/pcb.h"
 
@@ -12,14 +12,14 @@ typedef struct {
     QueueNode *head;         // Front of the line (next to be dequeued)
     QueueNode *tail;         // Back of the line (where new processes are enqueued)
     int size;                // Keep track of how many processes are waiting (may be commeneted) hashoof bardo
-} ReadyQueue;
+} Queue;
 
 //the queue functions we will impelement in ready_queue.c
 
-void init_queue(ReadyQueue *q);
-void enqueue(ReadyQueue *q, PCB *process);
-PCB* dequeue(ReadyQueue *q);
-int is_empty(ReadyQueue *q);
-void remove_from_queue(ReadyQueue *q, PCB *target);
+void init_queue(Queue *q);
+void enqueue(PCB *process, Queue *q);
+PCB* dequeue(Queue *q);
+int is_empty(Queue *q);
+void remove_from_queue(Queue *q, PCB *target);
 
 #endif

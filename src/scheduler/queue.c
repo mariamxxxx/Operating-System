@@ -1,8 +1,8 @@
-#include "ready_queue.h"
+#include "queue.h"
 #include <stdlib.h>
 #include <stdio.h>
 
-void init_queue(ReadyQueue *q) {
+void init_queue(Queue *q) {
     q->head = NULL;
     q->tail = NULL;
     q->size = 0;
@@ -13,7 +13,7 @@ void init_queue(ReadyQueue *q) {
 //     }
 // }
 
-void enqueue(ReadyQueue *q, PCB *process) {
+void enqueue(PCB *process,Queue *q) {
     QueueNode *newNode = (QueueNode*)malloc(sizeof(QueueNode));
     newNode->process = process;
     newNode->next = NULL;
@@ -27,7 +27,7 @@ void enqueue(ReadyQueue *q, PCB *process) {
     q->size++;
 }
 
-PCB* dequeue(ReadyQueue *q) {
+PCB* dequeue(Queue *q) {
     if (q->head == NULL) return NULL;
 
     QueueNode *temp = q->head;
@@ -43,7 +43,7 @@ PCB* dequeue(ReadyQueue *q) {
 
 
 //for hrrn
-void remove_from_queue(ReadyQueue *q, PCB *target) {
+void remove_from_queue(Queue *q, PCB *target) {
     if (q->head == NULL || target == NULL) return;
 
     // if the target is the head
@@ -68,6 +68,6 @@ void remove_from_queue(ReadyQueue *q, PCB *target) {
     }
 }
 
-int is_empty(ReadyQueue *q) {
+int is_empty(Queue *q) {
     return q->head == NULL;
 }

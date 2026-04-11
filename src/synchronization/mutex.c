@@ -1,95 +1,124 @@
 #include <stdio.h>
 #include <pcb.h>
-
-enum RESOURCE {
-    USER_INPUT,
-    USER_OUTPUT,
-    FILE_RESOURCE
-}; //translate to 0,1,2
+#include "mutex.h"
 
 
-typedef struct {
-    int queue[1000];
-    int front;
-    int rear;
-} CircularQueue;
+// void initQueue(CircularQueue *q){
+//     q-> front= -1;
+//     q-> rear= -1;
+// }
 
-void initQueue(CircularQueue *q){
-    q-> front= -1;
-    q-> rear= -1;
-}
+// int isEmpty(CircularQueue *q){
+//     return q->front==-1;
+// }
 
-int isEmpty(CircularQueue *q){
-    return q->front==-1;
-}
+// int isFull(CircularQueue* q){
+//     return (q->rear +1) %1000 == q-> front;
+// }
 
-int isFull(CircularQueue* q){
-    return (q->rear +1) %1000 == q-> front;
-}
+// void enqueue(CircularQueue* q, int program){
+// void enqueue(PCB* process, Queue* q){
 
-void enqueue(CircularQueue* q, int program){
-    if(isFull(q)){//2
-        printf("Full Queue\n");
-        return;
-    }
-    if(isEmpty(q)){
-        q->front=0;
-        q->rear=0;
-    }
-    else{
-        q-> rear = (q->rear+1) %1000;
-    }
-    q->queue[q->rear]=program;
-}
-int dequeue(CircularQueue* q){
-    if(isEmpty(q)){//2
-        printf("Empty Queue\n");
-        return -1;
-    }
-    int val = q->queue[q->front];
-    if (q->front == q-> rear){
-        q->front =-1;
-        q->rear =-1;
-    }
-    else{
-        q->front=(q->front +1)%1000;
-    }
-    return val;
-}
+//     // if(isFull(q)){//2
+//     //     printf("Full Queue\n");
+//     //     return;
+//     // }
+//     if(is_empty(q)){
+//         q->front=0;
+//         q->rear=0;
+//     }
+//     else{
+//         q-> rear = (q->rear+1) %1000;
+//     }
+//     q->queue[q->rear]=process;
+// }
+// PCB* dequeue(CircularQueue* q){
+//     if(isEmpty(q)){//2
+//         printf("Empty Queue\n");
+//         return NULL;
+//     }
+//     PCB* val = q->queue[q->front];
+//     if (q->front == q-> rear){
+//         q->front =-1;
+//         q->rear =-1;
+//     }
+//     else{
+//         q->front=(q->front +1)%1000;
+//     }
+//     return val;
+// }
 
 int binSem [3]= {1,1,1};
-CircularQueue blockedQueue;
-CircularQueue blockedQueues[3];
-CircularQueue readyQueue;
+Queue blockedQueue;
+Queue blockedQueues[3];
+Queue readyQueue;
 
-void semWait(PCB* program, enum RESOURCE r){
+static int queue_contains(Queue *q, PCB *process){
+    QueueNode *current = q->head;
+
+    while (current != NULL) {
+        if (current->process == process) {
+            return 1;
+        }
+        current = current->next;
+    }
+
+    return 0;
+}
+
+void init_mutex(void){
+    int i;
+    for(i = 0; i < 3; i++){
+        binSem[i] = 1;
+        init_queue(&blockedQueues[i]);
+    }
+    init_queue(&blockedQueue);
+    init_queue(&readyQueue);
+    //CHECK WITH ROUKA
+}
+
+void semWait(PCB* process, enum RESOURCE r){
+    if (r < USER_INPUT || r > FILE_RESOURCE) {
+        return;
+    }
+
+    if (queue_contains(&blockedQueue, process) || queue_contains(&blockedQueues[r], process)) {
+        process->state = BLOCKED;
+        return;
+    }
+
     if(binSem[r]==1)
         binSem[r]=0;
     else{
-        enqueue(&blockedQueue, program);
-        enqueue(&blockedQueues[r], program);
-        program -> state = BLOCKED; 
+        enqueue(process, &blockedQueue);
+        enqueue(process, &blockedQueues[r]);
+        process -> state = BLOCKED; 
     }
 }
 
 void semSignal(enum RESOURCE r){
-    if (isEmpty(&blockedQueues[r]))
+    if (r < USER_INPUT || r > FILE_RESOURCE) {
+        return;
+    }
+
+    if (is_empty(&blockedQueues[r]))
         binSem[r]=1;
     else{
-        int nextProgram=dequeue(&blockedQueues[r]);
+        PCB* nextProcess=dequeue(&blockedQueues[r]);
         
         int found=0;
         int count=0;
-        while (!isEmpty(&blockedQueue) && !found && count<1000){ //to avoid infinite loops
-            int val=dequeue(&blockedQueue);
+        while (!is_empty(&blockedQueue) && !found && count<blockedQueue.size){ //to avoid infinite loops
+            PCB* val=dequeue(&blockedQueue);
 
-            if (val==nextProgram)
+            if (val==nextProcess)
                 found=1;
             else
-                enqueue(&blockedQueue,val);
+                enqueue(val, &blockedQueue);
             count++;
         }
-        enqueue(&readyQueue, nextProgram);
+        nextProcess->state = READY;
+        enqueue(nextProcess, &readyQueue);
         binSem[r] = 0;
     }
 }
