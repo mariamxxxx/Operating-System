@@ -1,6 +1,6 @@
 #include "memoryy.h"
-#include "pcb.h"
-#include "processs.h"
+#include "../process/pcb.h"
+#include "../process/processs.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -8,7 +8,39 @@
 #define SWAP_DIR "src/disk"
 MemoryWord mem[MEMORY_SIZE];
 
-// CALLED OUTSIDE
+
+// HELPERS
+// build the file path for the swap file of a given PID.
+static void build_swap_path(int pid, char *out, size_t out_size){
+    snprintf(out, out_size, "%s/pid_%d.swap", SWAP_DIR, pid);
+}
+
+
+// INDEX
+static MapEntry memory_map[MEMORY_SIZE / 2]; 
+static int map_i = 0; // tracks the next available index in memory_map
+
+static void build_memory_map(int pid, int start_index, int word_count, int i){
+    if (i < MEMORY_SIZE / 2){
+        memory_map[i].pid = pid;
+        memory_map[i].start_index = start_index;
+        memory_map[i].word_count = word_count;
+        map_i++;
+    }
+}
+
+static void update_memory_map(int pid, int new_word_count, int index){
+    memory_map[index].word_count = new_word_count;
+    memory_map[index].pid = pid;
+}
+
+static void delete_memory_map_entry(int pid, int index){
+    for (int i = index; i < map_i - 1; i++){
+        memory_map[i] = memory_map[i + 1];
+    }
+    map_i--;
+}
+
 void update_state_in_memory(int pid, ProcessState *state) {
     int start = -1;
     for (int i = 0; i < map_i; i++) {
@@ -51,45 +83,6 @@ void free_process_memory(int pid){
     // can add delete here but more redundant
 }
 
-Process get_process_from_memory(int pid){
-    Process proc;
-    memset(&proc, 0, sizeof(Process)); // initialize all fields to 0/NULL
-
-
-}
-
-
-// HELPERS
-// build the file path for the swap file of a given PID.
-static void build_swap_path(int pid, char *out, size_t out_size){
-    snprintf(out, out_size, "%s/pid_%d.swap", SWAP_DIR, pid);
-}
-
-
-// index for all memory entries
-static MapEntry memory_map[MEMORY_SIZE / 2]; 
-static int map_i = 0; // tracks the next available index in memory_map
-
-static void build_memory_map(int pid, int start_index, int word_count, int i){
-    if (i < MEMORY_SIZE / 2){
-        memory_map[i].pid = pid;
-        memory_map[i].start_index = start_index;
-        memory_map[i].word_count = word_count;
-        map_i++;
-    }
-}
-
-static void update_memory_map(int pid, int new_word_count, int index){
-    memory_map[index].word_count = new_word_count;
-    memory_map[index].pid = pid;
-}
-
-static void delete_memory_map_entry(int pid, int index){
-    for (int i = index; i < map_i - 1; i++){
-        memory_map[i] = memory_map[i + 1];
-    }
-    map_i--;
-}
 
 // does the actual allocation
 static int allocate_block(int pid, int num_words){
@@ -177,15 +170,15 @@ void init_memory(){
 }
 
 // allocate a contiguous block of memory for a process, returning the starting index
-int allocate_memory(int pid, Process *proc){
+Process* allocate_memory(int pid, Process *proc){
     if (proc->pcb == NULL || proc->code_line_count > MAX_CODE_LINES)
-        return -1;
+        return NULL;
 
     int code_lines = proc->code_line_count;
     int num_words = 7 + code_lines; //4 pcb fields + 3 vars + code lines
     int start_index = allocate_block(pid, num_words);    
     if (start_index == -1)
-        return -1;
+        return NULL;
 
 
     int idx = start_index;
@@ -202,8 +195,8 @@ int allocate_memory(int pid, Process *proc){
     idx++;
 
     mem[idx].type = PCB_FIELD;
-    mem[idx].payload.memory_boundary[0] = proc->pcb->memory_bounds[0];
-    mem[idx].payload.memory_boundary[1] = proc->pcb->memory_bounds[1];
+    mem[idx].payload.memory_boundary[0] = proc->pcb->memory_bounds[start_index];
+    mem[idx].payload.memory_boundary[1] = proc->pcb->memory_bounds[start_index + num_words]; // point to last code line
     idx++;
 
     mem[idx].type = VARIABLE;
@@ -287,6 +280,16 @@ void write_word(int pid, char *key, char *value){
             return;
         }
     }
+}
+
+char *read_code_line(int pc){
+    if (pc < 0 || pc >= MEMORY_SIZE)
+        return NULL;
+
+    if (mem[pc].isFree || mem[pc].type != CODE_LINE)
+        return NULL;
+
+    return mem[pc].payload.code_line;
 }
 
 void swap_out(int pid, int word_count){

@@ -19,23 +19,10 @@ typedef struct{
         int memory_bounds[2]; // [start, end] indices in memory
             
         // for scheduler:
-        int burst_time;      // Needed to calculate HRRN response ratio 
-        int wait_time;       // Needed to calculate HRRN response ratio
+        // int burst_time;      // Needed to calculate HRRN response ratio 
+        // int wait_time;       // Needed to calculate HRRN response ratio
     }PCB;
 
-
-
-// typedef struct {
-//     int pid;
-//     ProcessState state;
-//     int program_counter;   // saved PC when not running
-//     int memory_start;
-//     int memory_end;
-//     int priority_level;    // for MLFQ (0 = highest)
-//     int quantum_used;      // for MLFQ / RR
-//     int burst_time;        // total burst time estimate (for HRRN)
-//     int waiting_time;      // accumulated waiting time
-// } PCB;
 
 
 

@@ -2,18 +2,15 @@
 #define PROCESS_H
 
 #include "pcb.h"
-#include "memory/memoryy.h"
 
 extern int next_pid;
-
+#define MAX_STRING 1024
 #define MAX_CODE_LINES 30
 
-typedef struct
-{
+typedef struct {
     char name[MAX_STRING];
     char value[MAX_STRING];
 } ProcessVar;
-
 
 typedef struct {
     PCB* pcb;
@@ -22,6 +19,7 @@ typedef struct {
     ProcessVar* var3;
     char code_lines[MAX_CODE_LINES][MAX_STRING];
     int code_line_count;
+    int arrival_time;
 } Process;
 
 // initialize a new process
@@ -30,6 +28,6 @@ PCB* create_process(int mem_start, int mem_end, int burst_time);
 // Function to free a process when it's finished
 // void destroy_process(PCB* p);
 
-Process* initProcess(int pid) ;
+Process* initProcess(int pid, int lines_of_code, int arrival_time) ;
 
 #endif

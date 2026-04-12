@@ -1,7 +1,8 @@
 #include"scheduler.h"
 #include "../interpreter/interpreter.h" // To call the instruction execution
 #include <stdio.h>
-#define time_quantum 2
+#include "../process/processs.h"
+
 
 PCB* execute_round_robin() {
     printf("Executing Round Robin Algorithm");
@@ -10,34 +11,38 @@ PCB* execute_round_robin() {
         printf("Scheduler: no proccesses in the ready queue\n");
         return NULL; // No processes ready to run
     }
-    PCB * current_process= dequeue(&os_ready_queue);
-    current_process->state = RUNNING;
-    printf("Scheduler: process %d using is selected for execution using Round Robin Algorithm\n", current_process->pid);
+    Process * current_process= dequeue(&os_ready_queue);
+    current_process->pcb->state = RUNNING;
+    update_state_in_memory(current_process->pcb-> pid, RUNNING);
+    printf("Scheduler: process %d using is selected for execution using Round Robin Algorithm\n", current_process->pcb->pid);
 
     print_all_queues();
 
     for(int i=0; i<time_quantum;i++){
         // The interpreter will use the PC from the PCB to find the instruction and execute it. 
 
-        printf("Running Process %d | Instruction %d (PC: %d)\n", current_process->pid, i + 1, current_process->pc);
+        printf("Running Process %d | Instruction %d (PC: %d)\n", current_process->pcb->pid, i + 1, current_process->pcb->pc);
 
-        execute_instruction(current_process); //check with heba eh esm el instruction
-        if (current_process->state == FINISHED){
-            printf("process %d has finished.\n", current_process->pid);
+        execute_instruction(current_process->pcb); //check with heba eh esm el instruction
+        if (current_process->pcb->state == FINISHED){
+            printf("process %d has finished.\n", current_process->pcb->pid);
+             update_state_in_memory(current_process-> pcb->pid, FINISHED);
             print_all_queues();
             return current_process;
         }    
-        if(current_process->state ==BLOCKED) {
-           printf("Process %d is blocked\n",current_process->pid);
+        if(current_process->pcb->state ==BLOCKED) {
+           printf("Process %d is blocked\n",current_process->pcb->pid);
+           update_state_in_memory(current_process->pcb->pid, BLOCKED);
            print_all_queues();
            return current_process;
     }
 }
     //ba3d ma ykhalas el time slice
     
-    current_process->state = READY; 
+    current_process->pcb->state = READY; 
+    update_state_in_memory(current_process->pcb-> pid, READY);
     enqueue(&os_ready_queue, current_process); 
-    printf("Process %d time slice ended. Moved to end of Ready Queue.\n", current_process->pid);
+    printf("Process %d time slice ended. Moved to end of Ready Queue.\n", current_process->pcb->pid);
     print_all_queues();
 
     return current_process;

@@ -53,7 +53,7 @@ PCB* initPCB(int pid) {
     return pcb;
 }
 
-Process* initProcess(int pid ) {
+Process* initProcess(int pid, int lines_of_code, int arrival_time) {
     Process* process = (Process*) malloc(sizeof(Process));
     if (process == NULL) {
         return NULL;
@@ -70,6 +70,8 @@ Process* initProcess(int pid ) {
     process->var3 = NULL;
 
     process->code_line_count = 0;
+    process->arrival_time = arrival_time;
+
 
     // // Clear code memory
     // for (int i = 0; i < MAX_CODE_LINES; i++) {
