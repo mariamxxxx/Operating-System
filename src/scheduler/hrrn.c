@@ -19,41 +19,42 @@ PCB*execute_hrrn(){
     
 
     //pick the chosen process 
+    Process *p= os_ready_queue.head;
     while (current != NULL) {
-        Process *p=
+        Process *p=current;
         int burst_time= p->code_line_count/ time_quantum;
         double ratio = (double)(p->wait_time + burst_time) / burst_time;
         if (ratio > myrate) {
             myrate = ratio;
-            best_pcb = p;
+            best = p;
         }
         current = current->next;
     }
 
     //Remove the selected process from the middle of the queue
-    remove_from_queue(&os_ready_queue, best_pcb);
+    remove_from_queue(&os_ready_queue, best);
  
-    best_pcb->state = RUNNING;
-    update_state_in_memory(best_pcb-> pid, RUNNING);
-    printf("HRRN: Selected Process %d (Ratio: %.2f)\n", best_pcb->pid, myrate);
+    best->pcb->state = RUNNING;
+    update_state_in_memory(best->pcb-> pid, RUNNING);
+    printf("HRRN: Selected Process %d (Ratio: %.2f)\n", best->pcb->pid, myrate);
     print_all_queues(); 
 
     // run until it finishes or blocks
     int inst_count=0;
-    while (best_pcb->state == RUNNING) {
-        printf("Running Process %d | PC: %d\n", best_pcb->pid, best_pcb->pc);
-        execute_instruction(best_pcb); //form heba
+    while (best->pcb->state == RUNNING) {
+        printf("Running Process %d | PC: %d\n", best->pcb->pid, best->pcb->pc);
+        execute_instruction(best->pcb);
         inst_count++;
 
-        if (best_pcb->state == FINISHED) {
-            printf("Process %d has finished.\n", best_pcb->pid);
-            update_state_in_memory(best_pcb-> pid, FINISHED);
+        if (best->pcb->state == FINISHED) {
+            printf("Process %d has finished.\n", best->pcb->pid);
+            update_state_in_memory(best->pcb->pid, FINISHED);
             print_all_queues(); 
             break;
         }    
-        if (best_pcb->state == BLOCKED) {
-           printf("Process %d is blocked\n", best_pcb->pid);
-           update_state_in_memory(best_pcb-> pid, BLOCKED);
+        if (best->pcb->state == BLOCKED) {
+           printf("Process %d is blocked\n", best->pcb->pid);
+           update_state_in_memory(best-> pcb->state, BLOCKED);
            print_all_queues(); 
            break;
         }
@@ -64,5 +65,5 @@ PCB*execute_hrrn(){
         curr=curr->next;
     }
 
-    return best_pcb;
+    return best;
 }

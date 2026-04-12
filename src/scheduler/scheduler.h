@@ -2,6 +2,7 @@
 #define SCHEDULER_H
 
 #include "queue.h"
+#include "../process/processs.h"
 
 typedef enum{
     HRRN,
@@ -16,7 +17,7 @@ extern int time_quantum= 2;
 
 void init_mlfq();
 void init_scheduler();
-void add_process_to_scheduler(PCB *process);
+void add_process_to_scheduler(Process*process);
 void print_all_queues();
 SchedulerAlgorithm get_current_algo(); 
 
