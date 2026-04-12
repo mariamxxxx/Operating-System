@@ -113,7 +113,7 @@ static char* parseLineToOpcode(char* line) {
 }
 
 void parseInstructionsIntoMemory(char* rawData , Process* process) {
-        printf("parseInstructionsIntoMemory:");
+    printf("parseInstructionsIntoMemory: loading program\n");
 
     char* line = strtok(rawData, "\n"); // Get first line
 

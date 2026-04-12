@@ -5,11 +5,13 @@
 
 int main(void) {
     int safety_cycles = 1000;
+    printf("main: starting simulator\n");
 
     os_init(RR);
 
+
     // Load at least one program before stepping the scheduler.
-    loadAndInterpret("src/programs/Program_1.txt",1);
+    loadAndInterpret("src/programs/Program_2.txt",1);
 
     os_start();
     while (!os_is_idle() && safety_cycles-- > 0) {
@@ -27,7 +29,6 @@ int main(void) {
     if (safety_cycles <= 0) {
         printf("Simulation stopped by safety limit.\n");
     }
-            printf("parseInstructionsIntoMemory: %d, %s");
 
 
     return 0;
