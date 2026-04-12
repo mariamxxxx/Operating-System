@@ -45,13 +45,5 @@ void process_handler(FILE *input_file, int arrival_time) {
 };
 
 int main() {
-<<<<<<< HEAD
-    controller();
-=======
-    init_memory();
-
-    // add file 1
-    //controller();
->>>>>>> Heba6
     return 0;
 }
