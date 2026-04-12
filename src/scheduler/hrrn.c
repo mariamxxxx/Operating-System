@@ -1,5 +1,7 @@
 #include "scheduler.h"
 #include "../interpreter/interpreter.h"
+#include "../process/pcb.h"
+#include "../process/processs.h"
 #include <stdio.h>
 PCB*execute_hrrn(){
     // PCB *current_process = dequeue(&os_ready_queue);
@@ -11,13 +13,16 @@ PCB*execute_hrrn(){
     
     QueueNode *current = os_ready_queue.head;
    
-    PCB *best_pcb = NULL;//the chosen process
+    //PCB *best_pcb = NULL;//the chosen process
+    Process * best =NULL;
     double myrate = -1.0;
+    
 
     //pick the chosen process 
     while (current != NULL) {
-        PCB *p = current->process;
-        double ratio = (double)(p->wait_time + p->burst_time) / p->burst_time;
+        Process *p=
+        int burst_time= p->code_line_count/ time_quantum;
+        double ratio = (double)(p->wait_time + burst_time) / burst_time;
         if (ratio > myrate) {
             myrate = ratio;
             best_pcb = p;
@@ -29,6 +34,7 @@ PCB*execute_hrrn(){
     remove_from_queue(&os_ready_queue, best_pcb);
  
     best_pcb->state = RUNNING;
+    update_state_in_memory(best_pcb-> pid, RUNNING);
     printf("HRRN: Selected Process %d (Ratio: %.2f)\n", best_pcb->pid, myrate);
     print_all_queues(); 
 
@@ -41,11 +47,13 @@ PCB*execute_hrrn(){
 
         if (best_pcb->state == FINISHED) {
             printf("Process %d has finished.\n", best_pcb->pid);
+            update_state_in_memory(best_pcb-> pid, FINISHED);
             print_all_queues(); 
             break;
         }    
         if (best_pcb->state == BLOCKED) {
            printf("Process %d is blocked\n", best_pcb->pid);
+           update_state_in_memory(best_pcb-> pid, BLOCKED);
            print_all_queues(); 
            break;
         }
