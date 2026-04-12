@@ -69,7 +69,7 @@ Process* initProcess(int pid, int lines_of_code, int arrival_time) {
     process->var2 = NULL;
     process->var3 = NULL;
 
-    process->code_line_count = lines_of_code;
+    process->code_line_count = 0;
     process->arrival_time = arrival_time;
 
 

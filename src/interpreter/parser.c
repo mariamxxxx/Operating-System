@@ -41,21 +41,21 @@ char* SplitInstruction(char* line) {
     return tokens;
 }
 
-int CountLines(char* rawData) {
+// int CountLines(char* rawData) {
 
-    int countLines =0;
+//     int countLines =0;
 
-    char* line = strtok(rawData, "\n"); // Get first line
+//     char* line = strtok(rawData, "\n"); // Get first line
     
-    while (line != NULL) {
+//     while (line != NULL) {
 
-        countLines++;
+//         countLines++;
 
-        line = strtok(NULL, "\n"); // Get next line
-    }
+//         line = strtok(NULL, "\n"); // Get next line
+//     }
 
-    return countLines;
-}
+//     return countLines;
+// }
 
 char* parseLineToOpcode(char* line) {
     char *Instruction[] = SplitInstruction(line);
@@ -107,20 +107,26 @@ char* parseLineToOpcode(char* line) {
     return result;
 }
 
-void parseInstructionsIntoMemory(char* rawData) {
+void parseInstructionsIntoMemory(char* rawData , Process* process) {
 
     char* line = strtok(rawData, "\n"); // Get first line
+
+    int i = 0; 
     
     while (line != NULL) {
 
         char* instruction = parseLineToOpcode(line); 
 
-        writetoMemory(instruction); 
+        strcpy(process->code_lines[i], instruction);
+
+        i++;
+
+        process->code_line_count++;
 
         line = strtok(NULL, "\n"); // Get next line
     }
 
-    allocate_memory(pid_int, NULL); 
+    allocate_memory(process->pcb->pid, process);
 
     free(rawData); 
 }
@@ -139,11 +145,11 @@ extern void loadAndInterpret(char* filename, int arrival_time) {
         return;
     }
 
-    Process * process = initProcess(pid_int, CountLines(fileContent), arrival_time); // Initialize process with PID and line count
+    Process * process = initProcess(pid_int); // Initialize process with PID and line count
 
     enqueue(&(process ->pcb), &os_ready_queue); // ma na5od el process kolahaaaa
     
-    parseInstructionsIntoMemory(fileContent);
+    parseInstructionsIntoMemory(fileContent , process);
     
     free(fileContent);
 }
