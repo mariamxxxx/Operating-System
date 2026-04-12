@@ -47,13 +47,14 @@ PCB* initPCB(int pid) {
     pcb->memory_bounds[0] = -1;
     pcb->memory_bounds[1] = -1;
 
-    pcb->burst_time = 0;
-    pcb->wait_time  = 0;
+    //pcb->burst_time = 0;
+    //pcb->wait_time  = 0;
 
     return pcb;
 }
 
-Process* initProcess(int pid, int lines_of_code, int arrival_time) {
+Process* initProcess(int pid , int arrival_time) {
+
     Process* process = (Process*) malloc(sizeof(Process));
     if (process == NULL) {
         return NULL;
@@ -69,8 +70,9 @@ Process* initProcess(int pid, int lines_of_code, int arrival_time) {
     process->var2 = NULL;
     process->var3 = NULL;
 
-    process->code_line_count = lines_of_code;
+    process->code_line_count = 0;
     process->arrival_time = arrival_time;
+
 
 
     // // Clear code memory

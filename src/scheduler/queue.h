@@ -6,7 +6,7 @@
 
 
 typedef struct QueueNode {
-    PCB *process;            // pointer to the actual PCB
+    Process *process;            // pointer to the actual PCB
     struct QueueNode *next;  // pointer to the next node in line
 } QueueNode;
 
