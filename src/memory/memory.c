@@ -156,6 +156,11 @@ void update_pcb_in_memory(int pid, PCB *pcb) {
     mem[start + 3].payload.memory_boundary[1] = pcb->memory_bounds[1];
 }
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> Heba6
 
 // MAIN FUNCTIONS
 // initialize memory

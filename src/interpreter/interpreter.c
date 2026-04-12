@@ -45,6 +45,7 @@ char** splitAndReverse(const char* str, int* count) {
     return result;
 }
 
+<<<<<<< HEAD
 extern void loadAndInterpret(char* filename) { 
     if (filename == NULL) {
         printf("[ERROR] Filename is NULL. Cannot proceed.\n");
@@ -63,6 +64,8 @@ extern void loadAndInterpret(char* filename) {
     
     free(fileContent);
 }
+=======
+>>>>>>> Heba6
 
 void callSemWait(PCB * process , int resourceType){
     semWait(process, resourceType);
