@@ -2,7 +2,6 @@
 #define MEMORYY_H
 
 #define MEMORY_SIZE 40
-#define MAX_STRING 1024
 #include "../process/pcb.h"
 #include "../process/processs.h"
 
@@ -61,6 +60,9 @@ char *read_word(int pid, char *varName);
 // Searches the slots owned by pid for a matching key and updates the value.
 // If not found, finds the next free slot in that process's range and writes a new entry.
 void write_word(int pid, char *key, char *value);
+
+// read a code line stored at a memory index (program counter)
+char *read_code_line(int pc);
 
 // writes everyhing owned by pid to disk, marks slots as free
 // updates process state to SWAPPED

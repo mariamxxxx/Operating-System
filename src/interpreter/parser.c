@@ -5,8 +5,6 @@
 #include "../scheduler/scheduler.h"
 #include "../scheduler/queue.h"
 
-
-
 int pid_int = 1; // Global variable to hold the PID for the process being initialized
 
 
@@ -33,18 +31,12 @@ char* SplitInstruction(char* line) {
 }
 
 int CountLines(char* rawData) {
-
-    int countLines =0;
-
+    int countLines = 0;
     char* line = strtok(rawData, "\n"); // Get first line
-    
     while (line != NULL) {
-
         countLines++;
-
         line = strtok(NULL, "\n"); // Get next line
     }
-
     return countLines;
 }
 

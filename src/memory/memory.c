@@ -156,16 +156,6 @@ void update_pcb_in_memory(int pid, PCB *pcb) {
     mem[start + 3].payload.memory_boundary[1] = pcb->memory_bounds[1];
 }
 
-void CountLines(char* rawData) {
-    int countLines = 0 ;
-    char* line = strtok(rawData, "\n"); // Get first line
-    while (line != NULL) {
-        countLines++;
-        line = strtok(NULL, "\n"); // Get next line
-    }
-
-}
-
 
 // MAIN FUNCTIONS
 // initialize memory
@@ -178,15 +168,15 @@ void init_memory(){
 }
 
 // allocate a contiguous block of memory for a process, returning the starting index
-int allocate_memory(int pid, Process *proc){
+Process* allocate_memory(int pid, Process *proc){
     if (proc->pcb == NULL || proc->code_line_count > MAX_CODE_LINES)
-        return -1;
+        return NULL;
 
     int code_lines = proc->code_line_count;
     int num_words = 7 + code_lines; //4 pcb fields + 3 vars + code lines
     int start_index = allocate_block(pid, num_words);    
     if (start_index == -1)
-        return -1;
+        return NULL;
 
 
     int idx = start_index;
@@ -288,6 +278,16 @@ void write_word(int pid, char *key, char *value){
             return;
         }
     }
+}
+
+char *read_code_line(int pc){
+    if (pc < 0 || pc >= MEMORY_SIZE)
+        return NULL;
+
+    if (mem[pc].isFree || mem[pc].type != CODE_LINE)
+        return NULL;
+
+    return mem[pc].payload.code_line;
 }
 
 void swap_out(int pid, int word_count){

@@ -1,6 +1,8 @@
 #include <stdio.h>  // For FILE, fopen, printf, fgets, fprintf
 #include <stdlib.h> // For malloc, free
 #include <string.h> // For strlen
+#include "syscalls.h"
+#include "../memory/memoryy.h"
 
 char* readFile(char* filename){ //read file
     FILE* f= fopen(filename,"r");
@@ -61,4 +63,8 @@ void writeToMemory(int pid, char* varName, char* varValue){ //write data to memo
 //ASSUMING WRITE__WORD WILL BE IMPLEMENTED IN MEMORY.C
     write_word(pid, varName, varValue);
     printf("Variable %s with value %s written to memory for process id %d\n", varName, varValue, pid);
+}
+
+char* readInstruction(int pc){
+    return read_code_line(pc);
 }

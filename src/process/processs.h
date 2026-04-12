@@ -2,9 +2,9 @@
 #define PROCESS_H
 
 #include "pcb.h"
-#include "../memory/memoryy.h"
 
 extern int next_pid;
+#define MAX_STRING 1024
 #define MAX_CODE_LINES 30
 
 typedef struct {
@@ -19,6 +19,7 @@ typedef struct {
     ProcessVar* var3;
     char code_lines[MAX_CODE_LINES][MAX_STRING];
     int code_line_count;
+    int arrival_time;
 } Process;
 
 // initialize a new process

@@ -1,10 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "syscalls.h"  // For readFile
+#include <string.h>
+#include "../os/syscalls.h"  // For syscalls
 #include "../memory/memoryy.h"    // For your memory functions
 #include "parser.h"    // For your parsing logic
-#include "pcb.h"    // For PCB structure
-#include "mutex.h"  // For semaphore operations
+#include "../process/pcb.h"    // For PCB structure
+#include "../synchronization/mutex.h"  // For semaphore operations
 
 char* substring(const char* src, int start, int length) {
     char* sub = malloc(length + 1);   // +1 for '\0'
@@ -50,7 +51,7 @@ extern void loadAndInterpret(char* filename) {
         return;
     }
     
-    char* fileContent = readFile(filename);    
+    char* fileContent = readFile(filename); 
     if (fileContent == NULL) {
         printf("[ERROR] Could not load %s - readFile returned NULL\n", filename);
         printf("[ERROR] File may not exist or read permission denied.\n");
@@ -102,7 +103,7 @@ char* callTakeInput(){
 
 void execute_instruction(PCB* process) { 
 
-    char* instruction = readFromMemory(process->pc);
+    char* instruction = readInstruction(process->pc);
 
     if (instruction == NULL) {
         printf("Execution Error: No instruction found at PC %d\n", process->pc);
