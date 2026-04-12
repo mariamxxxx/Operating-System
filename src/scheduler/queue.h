@@ -2,6 +2,8 @@
 #define QUEUE_H
 
 #include "../process/pcb.h"
+#include "../process/processs.h"
+
 
 typedef struct QueueNode {
     PCB *process;            // pointer to the actual PCB
@@ -17,9 +19,9 @@ typedef struct {
 //the queue functions we will impelement in ready_queue.c
 
 void init_queue(Queue *q);
-void enqueue(PCB *process, Queue *q);
-PCB* dequeue(Queue *q);
+void enqueue(Process *process, Queue *q);
+Process *dequeue(Queue *q);
 int is_empty(Queue *q);
-void remove_from_queue(Queue *q, PCB *target);
+void remove_from_queue(Queue *q, Process *target);
 
 #endif

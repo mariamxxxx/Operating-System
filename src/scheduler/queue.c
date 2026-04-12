@@ -13,7 +13,7 @@ void init_queue(Queue *q) {
 //     }
 // }
 
-void enqueue(PCB *process,Queue *q) {
+void enqueue(Process *process,Queue *q) {
     QueueNode *newNode = (QueueNode*)malloc(sizeof(QueueNode));
     newNode->process = process;
     newNode->next = NULL;
@@ -27,11 +27,11 @@ void enqueue(PCB *process,Queue *q) {
     q->size++;
 }
 
-PCB* dequeue(Queue *q) {
+Process* dequeue(Queue *q) {
     if (q->head == NULL) return NULL;
 
     QueueNode *temp = q->head;
-    PCB *process = temp->process;
+    Process *process = temp->process;
     q->head = q->head->next;
 
     if (q->head == NULL) q->tail = NULL;
@@ -43,7 +43,7 @@ PCB* dequeue(Queue *q) {
 
 
 //for hrrn
-void remove_from_queue(Queue *q, PCB *target) {
+void remove_from_queue(Queue *q, Process *target) {
     if (q->head == NULL || target == NULL) return;
 
     // if the target is the head
