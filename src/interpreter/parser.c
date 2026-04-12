@@ -4,6 +4,17 @@
 #include "../process/processs.h"
 #include "../scheduler/scheduler.h"
 #include "../scheduler/queue.h"
+#include "../memory/memoryy.h"    // For your memory functions
+
+int CountLines(char* rawData) {
+    int countLines = 0 ;
+    char* line = strtok(rawData, "\n"); // Get first line
+    while (line != NULL) {
+        countLines++;
+        line = strtok(NULL, "\n"); // Get next line
+    }
+    return countLines;
+}
 
 int pid_int = 1; // Global variable to hold the PID for the process being initialized
 
@@ -31,12 +42,18 @@ char* SplitInstruction(char* line) {
 }
 
 int CountLines(char* rawData) {
-    int countLines = 0;
+
+    int countLines =0;
+
     char* line = strtok(rawData, "\n"); // Get first line
+    
     while (line != NULL) {
+
         countLines++;
+
         line = strtok(NULL, "\n"); // Get next line
     }
+
     return countLines;
 }
 
@@ -98,15 +115,17 @@ void parseInstructionsIntoMemory(char* rawData) {
 
         char* instruction = parseLineToOpcode(line); 
 
-        writetoMemory(instruction);
+        writetoMemory(instruction); 
 
         line = strtok(NULL, "\n"); // Get next line
     }
 
+    allocate_memory(pid_int, NULL); 
+
     free(rawData); 
 }
 
-extern void loadAndInterpret(char* filename) { 
+extern void loadAndInterpret(char* filename, int arrival_time) { 
     if (filename == NULL) {
         printf("[ERROR] Filename is NULL. Cannot proceed.\n");
         return;
@@ -120,11 +139,9 @@ extern void loadAndInterpret(char* filename) {
         return;
     }
 
-    Process * process = initProcess(pid_int, CountLines(fileContent)); // Initialize process with PID and line count
+    Process * process = initProcess(pid_int, CountLines(fileContent), arrival_time); // Initialize process with PID and line count
 
     enqueue(&(process ->pcb), &os_ready_queue); // ma na5od el process kolahaaaa
-
-    pid_int++; // Increment global PID for next process
     
     parseInstructionsIntoMemory(fileContent);
     
