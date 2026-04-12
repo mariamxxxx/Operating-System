@@ -148,6 +148,8 @@ extern void loadAndInterpret(char* filename, int arrival_time) {
     Process * process = initProcess(pid_int); // Initialize process with PID and line count
 
     enqueue(&(process ->pcb), &os_ready_queue); // ma na5od el process kolahaaaa
+
+    pid_int++; // Increment global PID for next process
     
     parseInstructionsIntoMemory(fileContent , process);
     

@@ -22,8 +22,8 @@ PCB* create_process(int mem_start, int mem_end, int burst_time) {
     new_pcb->memory_bounds[1] = mem_end;
 
     //initialize Scheduler fields
-    new_pcb->burst_time = burst_time;
-    new_pcb->wait_time = 0;
+    //new_pcb->burst_time = burst_time;
+   // new_pcb->wait_time = 0;
 
     return new_pcb;
 }
@@ -47,13 +47,14 @@ PCB* initPCB(int pid) {
     pcb->memory_bounds[0] = -1;
     pcb->memory_bounds[1] = -1;
 
-    pcb->burst_time = 0;
-    pcb->wait_time  = 0;
+    //pcb->burst_time = 0;
+    //pcb->wait_time  = 0;
 
     return pcb;
 }
 
-Process* initProcess(int pid, int lines_of_code, int arrival_time) {
+Process* initProcess(int pid , int arrival_time) {
+
     Process* process = (Process*) malloc(sizeof(Process));
     if (process == NULL) {
         return NULL;
@@ -71,6 +72,7 @@ Process* initProcess(int pid, int lines_of_code, int arrival_time) {
 
     process->code_line_count = 0;
     process->arrival_time = arrival_time;
+
 
 
     // // Clear code memory
