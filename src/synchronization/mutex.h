@@ -29,7 +29,7 @@ extern Queue readyQueue;
 // PCB* dequeue(CircularQueue* q);
 
 void init_mutex(void);
-void semWait(PCB* process, enum RESOURCE r);
+void semWait(Process* process, enum RESOURCE r);
 void semSignal(enum RESOURCE r);
 
 #endif
