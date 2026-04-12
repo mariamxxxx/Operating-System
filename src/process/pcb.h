@@ -19,8 +19,8 @@ typedef struct{
         int memory_bounds[2]; // [start, end] indices in memory
             
         // for scheduler:
-        int burst_time;      // Needed to calculate HRRN response ratio 
-        int wait_time;       // Needed to calculate HRRN response ratio
+        // int burst_time;      // Needed to calculate HRRN response ratio 
+        // int wait_time;       // Needed to calculate HRRN response ratio
     }PCB;
 
 

@@ -12,6 +12,7 @@ typedef enum{
 extern Queue os_ready_queue; //the main ready queue that holds the proccesses
 extern Queue general_blocked_queue;
 extern Queue mlfq_queues[4];
+extern int time_quantum= 2;
 
 void init_mlfq();
 void init_scheduler();

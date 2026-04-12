@@ -12,6 +12,7 @@ void init_mlfq() {
 }
 
 PCB* execute_mlfq() {
+
     printf("Executing Multi-Level Feedback Queue Algorithm");
     PCB *current_process = NULL;
     int current_level = -1;
@@ -30,6 +31,7 @@ PCB* execute_mlfq() {
     //quantum for this leve(2^i)
     int quantum = (int)pow(2, current_level);
     current_process->state = RUNNING;
+    update_state_in_memory(current_process-> pid, RUNNING);
     
     printf("MLFQ: Selected P%d from Queue %d (Quantum: %d)\n", 
             current_process->pid, current_level, quantum);
@@ -45,12 +47,14 @@ PCB* execute_mlfq() {
 
         if (current_process->state == FINISHED){
             printf("Process %d has finished\n",current_process->pid);
+            update_state_in_memory(current_process-> pid, FINISHED);
             print_all_queues();
             return current_process; 
 
         }
         if(current_process->state == BLOCKED) {
             printf("Process %d is blocked\n",current_process->pid);
+            update_state_in_memory(current_process-> pid, BLOCKED);
             print_all_queues();
             return current_process; 
         }
@@ -59,6 +63,7 @@ PCB* execute_mlfq() {
     //the process used its whole quantum, move to the next priority queue
     if (current_process->state == RUNNING) {
         current_process->state = READY;
+        update_state_in_memory(current_process-> pid, READY);
         int next_level = (current_level < 3) ? current_level + 1 : 3;
         
         enqueue(&mlfq_queues[next_level], current_process);

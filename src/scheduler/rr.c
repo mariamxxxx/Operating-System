@@ -1,7 +1,7 @@
 #include"scheduler.h"
 #include "../interpreter/interpreter.h" // To call the instruction execution
 #include <stdio.h>
-#define time_quantum 2
+
 
 PCB* execute_round_robin() {
     printf("Executing Round Robin Algorithm");
@@ -12,6 +12,7 @@ PCB* execute_round_robin() {
     }
     PCB * current_process= dequeue(&os_ready_queue);
     current_process->state = RUNNING;
+    update_state_in_memory(current_process-> pid, RUNNING);
     printf("Scheduler: process %d using is selected for execution using Round Robin Algorithm\n", current_process->pid);
 
     print_all_queues();
@@ -24,11 +25,13 @@ PCB* execute_round_robin() {
         execute_instruction(current_process); //check with heba eh esm el instruction
         if (current_process->state == FINISHED){
             printf("process %d has finished.\n", current_process->pid);
+             update_state_in_memory(current_process-> pid, FINISHED);
             print_all_queues();
             return current_process;
         }    
         if(current_process->state ==BLOCKED) {
            printf("Process %d is blocked\n",current_process->pid);
+           update_state_in_memory(current_process-> pid, BLOCKED);
            print_all_queues();
            return current_process;
     }
@@ -36,6 +39,7 @@ PCB* execute_round_robin() {
     //ba3d ma ykhalas el time slice
     
     current_process->state = READY; 
+    update_state_in_memory(current_process-> pid, READY);
     enqueue(&os_ready_queue, current_process); 
     printf("Process %d time slice ended. Moved to end of Ready Queue.\n", current_process->pid);
     print_all_queues();
