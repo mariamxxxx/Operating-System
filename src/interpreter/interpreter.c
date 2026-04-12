@@ -44,24 +44,6 @@ char** splitAndReverse(const char* str, int* count) {
     return result;
 }
 
-extern void loadAndInterpret(char* filename) { 
-    if (filename == NULL) {
-        printf("[ERROR] Filename is NULL. Cannot proceed.\n");
-        return;
-    }
-    
-    char* fileContent = readFile(filename);    
-    if (fileContent == NULL) {
-        printf("[ERROR] Could not load %s - readFile returned NULL\n", filename);
-        printf("[ERROR] File may not exist or read permission denied.\n");
-        return;
-    }
-    
-    CountLines(fileContent);
-    parseInstructionsIntoMemory(fileContent);
-    
-    free(fileContent);
-}
 
 void callSemWait(PCB * process , int resourceType){
     semWait(process, resourceType);

@@ -62,6 +62,6 @@ int main() {
     init_memory();
 
     // add file 1
-    controller();
+    //controller();
     return 0;
 }

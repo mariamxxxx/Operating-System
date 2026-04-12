@@ -163,15 +163,7 @@ void update_pcb_in_memory(int pid, PCB *pcb) {
     mem[start + 3].payload.memory_boundary[1] = pcb->memory_bounds[1];
 }
 
-void CountLines(char* rawData) {
-    int countLines = 0 ;
-    char* line = strtok(rawData, "\n"); // Get first line
-    while (line != NULL) {
-        countLines++;
-        line = strtok(NULL, "\n"); // Get next line
-    }
 
-}
 
 
 // MAIN FUNCTIONS

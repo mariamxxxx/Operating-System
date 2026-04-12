@@ -30,6 +30,6 @@ PCB* create_process(int mem_start, int mem_end, int burst_time);
 // Function to free a process when it's finished
 // void destroy_process(PCB* p);
 
-Process* initProcess(int pid, int lines_of_code) ;
+Process* initProcess(int pid) ;
 
 #endif
