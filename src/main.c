@@ -45,5 +45,10 @@ void process_handler(FILE *input_file, int arrival_time) {
 };
 
 int main() {
+    init_memory();
+
+    // add file 1
+    //controller();
+    controller();
     return 0;
 }
