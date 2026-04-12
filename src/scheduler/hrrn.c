@@ -18,13 +18,19 @@ PCB*execute_hrrn(){
     double myrate = -1.0;
     
 
-    //pick the chosen process 
+    //pick the chosen process
+     
     Process *p= os_ready_queue.head;
     while (current != NULL) {
-        Process *p=current;
-        int burst_time= p->code_line_count/ time_quantum;
-        double ratio = (double)(p->wait_time + burst_time) / burst_time;
-        if (ratio > myrate) {
+        Process *p=current->process;
+         int wait  = current_clock - p->arrival_time;
+        int burst = (p->code_line_count + time_quantum - 1) / time_quantum;
+        if (burst < 1) burst = 1;
+        
+        double ratio = (double)(wait + burst) / burst;
+        printf("  P%d: arrival=%d  wait=%d  burst=%d  ratio=%.2f\n",p->pcb->pid, p->arrival_time, wait, burst, ratio);
+
+        if(ratio>myrate) {
             myrate = ratio;
             best = p;
         }
