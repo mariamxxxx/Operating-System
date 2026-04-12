@@ -1,26 +1,35 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../os/syscalls.h"  // For syscalls
-#include "../memory/memoryy.h"    // For your memory functions
-#include "parser.h"    // For your parsing logic
-#include "../process/pcb.h"    // For PCB structure
-#include "../synchronization/mutex.h"  // For semaphore operations
+
+#include "../memory/memoryy.h"
+#include "../os/syscalls.h"
+#include "../synchronization/mutex.h"
+#include "parser.h"
 
 char* substring(const char* src, int start, int length) {
-    char* sub = malloc(length + 1);   // +1 for '\0'
+    char* sub = malloc(length + 1);
     if (sub == NULL) return NULL;
 
     strncpy(sub, src + start, length);
     sub[length] = '\0';
 
-    return sub;   // caller must free()
+    return sub;
 }
 
+static void free_parts(char **parts, int count) {
+    if (parts == NULL) {
+        return;
+    }
 
+    for (int i = 0; i < count; i++) {
+        free(parts[i]);
+    }
+    free(parts);
+}
 
 char** splitAndReverse(const char* str, int* count) {
-    char* copy = strdup(str);   // make modifiable copy
+    char* copy = strdup(str);
     char* token;
     int capacity = 10;
 
@@ -45,31 +54,31 @@ char** splitAndReverse(const char* str, int* count) {
     return result;
 }
 
-extern void loadAndInterpret(char* filename) { 
-    if (filename == NULL) {
-        printf("[ERROR] Filename is NULL. Cannot proceed.\n");
-        return;
-    }
+// extern void loadAndInterpret(char* filename) { 
+//     if (filename == NULL) {
+//         printf("[ERROR] Filename is NULL. Cannot proceed.\n");
+//         return;
+//     }
     
-    char* fileContent = readFile(filename); 
-    if (fileContent == NULL) {
-        printf("[ERROR] Could not load %s - readFile returned NULL\n", filename);
-        printf("[ERROR] File may not exist or read permission denied.\n");
-        return;
-    }
+//     char* fileContent = readFile(filename); 
+//     if (fileContent == NULL) {
+//         printf("[ERROR] Could not load %s - readFile returned NULL\n", filename);
+//         printf("[ERROR] File may not exist or read permission denied.\n");
+//         return;
+//     }
     
-    CountLines(fileContent);
-    parseInstructionsIntoMemory(fileContent);
+//     CountLines(fileContent);
+//     parseInstructionsIntoMemory(fileContent);
     
-    free(fileContent);
-}
+//     free(fileContent);
+// }
 
-void callSemWait(PCB * process , int resourceType){
-    semWait(process, resourceType);
+void callSemWait(Process *process , int resourceType){
+    semWait(process, (enum RESOURCE) resourceType);
 }
 
 void callSemSignal(int resourceType){
-    semSignal(resourceType);
+    semSignal((enum RESOURCE) resourceType);
 }
 
 void callAssign(int pid , char* varName, char* varValue){
@@ -101,26 +110,29 @@ char* callTakeInput(){
     return takeInput();
 }
 
-void execute_instruction(PCB* process) { 
-
-    char* instruction = readInstruction(process->pc);
-
-    if (instruction == NULL) {
-        printf("Execution Error: No instruction found at PC %d\n", process->pc);
+void execute_instruction(Process* process) { 
+    if (process == NULL || process->pcb == NULL) {
         return;
     }
 
-    int count;
+    char* instruction = readInstruction(process->pcb->pc);
 
+    if (instruction == NULL) {
+        process->pcb->state = FINISHED;
+        update_state_in_memory(process->pcb->pid, FINISHED);
+        printf("Execution Error: No instruction found at PC %d\n", process->pcb->pc);
+        return;
+    }
+
+    int count = 0;
     char** parts = splitAndReverse(instruction, &count);
 
-    for (int i =0 ; i < count ; i++){
-
+    for (int i = 0; i < count; i++) {
         char* part = parts[i];
     
         if (strcmp(part, "000") == 0 ){
             if (i>=1){
-                callSemWait(process, parts[i-1]);
+                callSemWait(process, atoi(parts[i-1]));
             }
             else {
                 printf("Syntax Error: Missing resource type for semWait in instruction %s\n", instruction);
@@ -128,7 +140,7 @@ void execute_instruction(PCB* process) {
         }
         if (strcmp(part, "001") == 0 ){
             if (i>=1){
-                callSemSignal(parts[i-1]);
+                callSemSignal(atoi(parts[i-1]));
             }
             else {
                 printf("Syntax Error: Missing resource type for semSignal in instruction %s\n", instruction);
@@ -136,7 +148,7 @@ void execute_instruction(PCB* process) {
         }
         if (strcmp(part, "010") == 0 ){
             if (i>=2){
-                callAssign(process->pid, parts[i-1], parts[i-2]);
+                callAssign(process->pcb->pid, parts[i-1], parts[i-2]);
             }
             else {
                 printf("Syntax Error: Missing variable name or value for assign in instruction %s\n", instruction);
@@ -181,9 +193,11 @@ void execute_instruction(PCB* process) {
         }
     }
     
-    printf("Executing instruction at PC %d: %s\n", process->pc, instruction);
-
-    process -> pc += sizeof(instruction); 
+    printf("Executing instruction at PC %d: %s\n", process->pcb->pc, instruction);
+//one?
+    process->pcb->pc += 1;
+    update_pc_in_memory(process->pcb->pid, process->pcb->pc);
+    free_parts(parts, count);
 }
 
 

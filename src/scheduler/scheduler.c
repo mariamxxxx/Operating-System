@@ -1,9 +1,13 @@
 #include "scheduler.h"
+#include <stdio.h>
 #include <stddef.h> //for null pointer 
+#include "../memory/memoryy.h"
+#include "../interpreter/interpreter.h"
 
 //the global queues for the whole OS
  Queue os_ready_queue;
  Queue general_blocked_queue; 
+ int time_quantum = 2;
 
 static SchedulerAlgorithm current_algo;
 
@@ -21,7 +25,7 @@ void print_all_queues() {
     printf("Ready Queue: [");
     QueueNode *current = os_ready_queue.head;
     while (current != NULL) {
-        printf("P%d", current->process->pid);
+        printf("P%d", current->process->pcb->pid);
         if (current->next != NULL) printf(", ");
         current = current->next;
     }
@@ -31,7 +35,7 @@ void print_all_queues() {
     printf("Blocked Queue: [");
     current = general_blocked_queue.head;
     while (current != NULL) {
-        printf("P%d", current->process->pid);
+        printf("P%d", current->process->pcb->pid);
         if (current->next != NULL) printf(", ");
         current = current->next;
     }
@@ -44,7 +48,7 @@ void print_all_queues() {
     printf("MLFQ Queue %d: [", i);
     QueueNode *curr = mlfq_queues[i].head;
     while (curr != NULL) {
-        printf("P%d", curr->process->pid);
+        printf("P%d", curr->process->pcb->pid);
         if (curr->next != NULL) printf(", ");
         curr = curr->next;
     }
@@ -54,18 +58,22 @@ void print_all_queues() {
 }
 
 
-void add_process_to_scheduler(PCB *process) {
-    process->state = READY;
+void add_process_to_scheduler(Process *process) {
+    if (process == NULL || process->pcb == NULL) {
+        return;
+    }
+
+    process->pcb->state = READY;
     if (current_algo == MLFQ) {
-        enqueue(&mlfq_queues[0], process); // new processes start at highest priority
+        enqueue(process, &mlfq_queues[0]); // new processes start at highest priority
     } else {
-        enqueue(&os_ready_queue, process);
+        enqueue(process, &os_ready_queue);
     }
 
     
 }
 
-PCB* schedule_next_process(SchedulerAlgorithm algo) {
+Process* schedule_next_process(SchedulerAlgorithm algo) {
     current_algo=algo;
     switch(algo) {
         case RR:   return execute_round_robin();
@@ -77,4 +85,8 @@ PCB* schedule_next_process(SchedulerAlgorithm algo) {
 
 SchedulerAlgorithm get_current_algo() {
     return current_algo;
+}
+
+void set_current_algo(SchedulerAlgorithm algo) {
+    current_algo = algo;
 }

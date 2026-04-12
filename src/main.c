@@ -1,54 +1,34 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "process/pcb.h"
-#include "scheduler/scheduler.h"
-#include "synchronization/mutex.h"
-#include "interpreter/interpreter.h"
-#include "interpreter/interpreter.c"
-#include "memory/memoryy.h"
-#include "memory/memory.c"
-#include "process/processs.h"
 
+#include "interpreter/parser.h"
+#include "os/os_core.h"
 
-static int pid = 0;
-void controller(){
-    initialize_memory();
-}
+int main(void) {
+    int safety_cycles = 1000;
 
-void process_handler(FILE *input_file, int arrival_time) {
-    // 1. Read and interpret the input file to create a Process structure
-    loadAndInterpret(input_file);
+    os_init(RR);
 
-    // 2. Create process
-    Process *proc = initProcess(pid++, CountLines(fileContent), arrival_time); // Initialize process with PID and line count
-    if (proc == NULL) {
-        fprintf(stderr, "Failed to initialize process from file %s.\n", input_file);
-        return;
+    // Load at least one program before stepping the scheduler.
+    loadAndInterpret("src/programs/Program_1.txt",1);
+
+    os_start();
+    while (!os_is_idle() && safety_cycles-- > 0) {
+        OSSnapshot snapshot = os_get_snapshot();
+        printf("Tick=%d Running=%d Ready=%d Blocked=%d\n",
+               snapshot.clock_tick,
+               snapshot.current_pid,
+               snapshot.ready_queue_size,
+               snapshot.blocked_queue_size);
+        os_tick();
     }
 
-    // 3. Allocate memory for the process
-    proc = allocate_memory(proc->pcb->pid, proc);
-    if (proc == NULL) {
-        fprintf(stderr, "Memory allocation failed for process %d.\n", proc->pcb->pid);
-        return;
+    os_pause();
+
+    if (safety_cycles <= 0) {
+        printf("Simulation stopped by safety limit.\n");
     }
+            printf("parseInstructionsIntoMemory: %d, %s");
 
-    // 4. Add the process to the scheduler's ready queue
-    add_to_ready_queue(proc);
 
-    // 5. Update the PCB in memory
-    update_pcb_in_memory(proc->pcb->pid, proc->pcb);
-
-    // 6. Print memory state for debugging
-    print_memory();
-};
-
-int main() {
-    init_memory();
-
-    // add file 1
-    //controller();
-    controller();
     return 0;
 }

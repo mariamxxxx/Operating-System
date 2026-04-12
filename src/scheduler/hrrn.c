@@ -1,9 +1,15 @@
 #include "scheduler.h"
 #include "../interpreter/interpreter.h"
-#include "../process/pcb.h"
 #include "../process/processs.h"
+#include "../memory/memoryy.h"
+#include "queue.h"
 #include <stdio.h>
-PCB*execute_hrrn(){
+#include <stdlib.h>
+#include "../os/os_core.h"
+
+extern int os_get_clock(void);
+
+Process *execute_hrrn(){
     // PCB *current_process = dequeue(&os_ready_queue);
     printf("Executing Highest Respose Rate Algorithm");
     if (os_ready_queue.head == NULL) {
@@ -13,17 +19,15 @@ PCB*execute_hrrn(){
     
     QueueNode *current = os_ready_queue.head;
    
-    //PCB *best_pcb = NULL;//the chosen process
     Process * best =NULL;
     double myrate = -1.0;
     
 
-    //pick the chosen process
-     
-    Process *p= os_ready_queue.head;
+    // pick the chosen process based on response ratio using global system clock.
+    int wait;
     while (current != NULL) {
         Process *p=current->process;
-         int wait  = current_clock - p->arrival_time;
+        wait = os_get_clock() - p->arrival_time;
         int burst = (p->code_line_count + time_quantum - 1) / time_quantum;
         if (burst < 1) burst = 1;
         
@@ -41,7 +45,7 @@ PCB*execute_hrrn(){
     remove_from_queue(&os_ready_queue, best);
  
     best->pcb->state = RUNNING;
-    update_state_in_memory(best->pcb-> pid, RUNNING);
+    update_state_in_memory(best->pcb->pid, RUNNING);
     printf("HRRN: Selected Process %d (Ratio: %.2f)\n", best->pcb->pid, myrate);
     print_all_queues(); 
 
@@ -49,7 +53,7 @@ PCB*execute_hrrn(){
     int inst_count=0;
     while (best->pcb->state == RUNNING) {
         printf("Running Process %d | PC: %d\n", best->pcb->pid, best->pcb->pc);
-        execute_instruction(best->pcb);
+        execute_instruction(best);
         inst_count++;
 
         if (best->pcb->state == FINISHED) {
@@ -60,14 +64,14 @@ PCB*execute_hrrn(){
         }    
         if (best->pcb->state == BLOCKED) {
            printf("Process %d is blocked\n", best->pcb->pid);
-           update_state_in_memory(best-> pcb->state, BLOCKED);
+           update_state_in_memory(best->pcb->pid, BLOCKED);
            print_all_queues(); 
            break;
         }
     }
     QueueNode *curr= os_ready_queue.head;
     while(curr!=NULL){
-        curr->process->wait_time+= inst_count;
+        wait += inst_count;
         curr=curr->next;
     }
 

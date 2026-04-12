@@ -41,7 +41,7 @@ static void delete_memory_map_entry(int pid, int index){
     map_i--;
 }
 
-void update_state_in_memory(int pid, ProcessState *state) {
+void update_state_in_memory(int pid, ProcessState state) {
     int start = -1;
     for (int i = 0; i < map_i; i++) {
         if (memory_map[i].pid == pid) {
@@ -51,7 +51,7 @@ void update_state_in_memory(int pid, ProcessState *state) {
     }
     if (start == -1) return;
 
-    mem[start + 1].payload.state = *state;
+    mem[start + 1].payload.state = state;
 }
 
 void update_pc_in_memory(int pid, int pc) {
@@ -156,12 +156,6 @@ void update_pcb_in_memory(int pid, PCB *pcb) {
     mem[start + 3].payload.memory_boundary[1] = pcb->memory_bounds[1];
 }
 
-<<<<<<< HEAD
-=======
-
-
->>>>>>> Heba6
-
 
 
 // MAIN FUNCTIONS
@@ -200,8 +194,11 @@ Process* allocate_memory(int pid, Process *proc){
     idx++;
 
     mem[idx].type = PCB_FIELD;
-    mem[idx].payload.memory_boundary[0] = proc->pcb->memory_bounds[start_index];
-    mem[idx].payload.memory_boundary[1] = proc->pcb->memory_bounds[start_index + num_words]; // point to last code line
+    // mem[idx].payload.memory_boundary[0] = proc->pcb->memory_bounds[start_index];
+    // mem[idx].payload.memory_boundary[1] = proc->pcb->memory_bounds[start_index + num_words]; // point to last code line
+ 
+    mem[idx].payload.memory_boundary[0] = start_index;
+    mem[idx].payload.memory_boundary[1] = start_index + num_words - 1; // point to last code line
     idx++;
 
     mem[idx].type = VARIABLE;
@@ -234,8 +231,14 @@ Process* allocate_memory(int pid, Process *proc){
         mem[idx].payload.code_line[MAX_STRING - 1] = '\0'; //guarantee null termination
         idx++;
     }
+    //COPILOT-->
 
-    return start_index;
+    // Keep PCB runtime fields in sync with allocated memory layout.
+    proc->pcb->pc = start_index + 7;
+    proc->pcb->memory_bounds[0] = start_index;
+    proc->pcb->memory_bounds[1] = start_index + num_words - 1;
+
+    return proc;
 }
 
 

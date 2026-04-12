@@ -47,7 +47,11 @@ void init_memory();
 
 // finds contiguous block for a process and writes its fields into memory
 // returns -1 if no space is found
-int allocate_memory(int pid, Process *proc);
+Process* allocate_memory(int pid, Process *proc);
+
+void update_state_in_memory(int pid, ProcessState state);
+void update_pc_in_memory(int pid, int pc);
+void update_pcb_in_memory(int pid, PCB *pcb);
 
 // clears any spot owned by pid, marks it as free
 // called during swap or when process finishes
