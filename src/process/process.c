@@ -22,8 +22,8 @@ PCB* create_process(int mem_start, int mem_end, int burst_time) {
     new_pcb->memory_bounds[1] = mem_end;
 
     //initialize Scheduler fields
-    new_pcb->burst_time = burst_time;
-    new_pcb->wait_time = 0;
+    // new_pcb->burst_time = burst_time;
+    // new_pcb->wait_time = 0;
 
     return new_pcb;
 }
