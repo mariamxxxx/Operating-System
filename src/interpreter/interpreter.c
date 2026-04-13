@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 
 #include "../memory/memoryy.h"
 #include "../os/syscalls.h"
 #include "../synchronization/mutex.h"
 #include "parser.h"
+
+int global_pid ;
 
 char* substring(const char* src, int start, int length) {
     char* sub = malloc(length + 1);
@@ -96,7 +97,7 @@ void callAssign(int pid , char* varName, char* varValue){
 
 void callPrint(char* data){
     printf("Print: %s\n", data);
-    printData(data);
+    printData(readFromMemory(global_pid, data));
     printf("Print done\n");
 }
 
@@ -111,63 +112,15 @@ void callPrintFromTo(int from, int to){
     printf("PrintFromTo done\n");
 }
 
-static int is_integer_token(const char *value) {
-    if (value == NULL || *value == '\0') {
-        return 0;
-    }
-
-    const unsigned char *p = (const unsigned char *)value;
-    if (*p == '-' || *p == '+') {
-        p++;
-    }
-
-    if (*p == '\0') {
-        return 0;
-    }
-
-    while (*p != '\0') {
-        if (!isdigit(*p)) {
-            return 0;
-        }
-        p++;
-    }
-
-    return 1;
-}
-
-static int resolve_int_arg(Process *process, const char *token, int *out_value) {
-    if (is_integer_token(token)) {
-        *out_value = atoi(token);
-        return 1;
-    }
-
-    char *value = readFromMemory(process->pcb->pid, (char *)token);
-    if (value == NULL || !is_integer_token(value)) {
-        return 0;
-    }
-
-    *out_value = atoi(value);
-    return 1;
-}
-
-static const char *resolve_string_arg(Process *process, const char *token) {
-    char *value = readFromMemory(process->pcb->pid, (char *)token);
-    if (value != NULL && value[0] != '\0') {
-        return value;
-    }
-
-    return token;
-}
-
 void callWriteFile(char* filename, char* content){
     printf("WriteFile: %s\n", filename);
-    writeFile(filename, content);
+    writeFile(readFromMemory(global_pid, filename), readFromMemory(global_pid, content));
     printf("WriteFile done\n");
 }
 
 char* callReadFile(char* filename){
     printf("ReadFile: %s\n", filename);
-    char* result = readFile(filename);
+    char* result = readFile(readFromMemory(global_pid, filename));
     printf("ReadFile: got %s\n", result);
     return result;
 }
@@ -180,6 +133,9 @@ char* callTakeInput(){
 }
 
 void execute_instruction(Process* process) { 
+
+    global_pid = process->pcb->pid;
+
     printf("Exec: PID %d\n", process->pcb->pid);
     if (process == NULL || process->pcb == NULL) {
         printf("Exec: NULL process\n");
@@ -232,8 +188,7 @@ void execute_instruction(Process* process) {
         }
         if (strcmp(part, "011") == 0 ){
             if (i>=1){
-                const char *value = resolve_string_arg(process, parts[i-1]);
-                callPrint((char *)value);
+                callPrint(parts[i-1]);
             }
             else {
                 printf("Syntax Error: Missing data to print for print in instruction %s\n", instruction);
@@ -241,14 +196,15 @@ void execute_instruction(Process* process) {
         }
         if (strcmp(part, "100") == 0 ){
             if (i>=2){
-                int from = 0;
-                int to = 0;
-                if (!resolve_int_arg(process, parts[i-1], &from) ||
-                    !resolve_int_arg(process, parts[i-2], &to)) {
-                    printf("Runtime Error: printFromTo arguments must be integers or variables with integer values\n");
-                } else {
-                    callPrintFromTo(from, to);
-                }
+                char* from_str = readFromMemory(global_pid, parts[i-1]);
+                char* to_str = readFromMemory(global_pid, parts[i-2]);
+                printf("Exec: printFromTo from_var='%s' from_val='%s', to_var='%s' to_val='%s'\n", 
+                       parts[i-1], from_str ? from_str : "NULL", 
+                       parts[i-2], to_str ? to_str : "NULL");
+                int from = from_str ? atoi(from_str) : 0;
+                int to = to_str ? atoi(to_str) : 0;
+                printf("Exec: printFromTo from=%d, to=%d\n", from, to);
+                callPrintFromTo(from, to);
             }
             else {
                 printf("Syntax Error: Missing range values for printFromTo in instruction %s\n", instruction);
@@ -256,18 +212,15 @@ void execute_instruction(Process* process) {
         }
         if (strcmp(part, "101") == 0 ){
             if (i>=2){
-                const char *filename = resolve_string_arg(process, parts[i-1]);
-                const char *content = resolve_string_arg(process, parts[i-2]);
-                callWriteFile((char *)filename, (char *)content);
+                callWriteFile(parts[i-1], parts[i-2]);
             }
             else {
                 printf("Syntax Error: Missing filename or content for writeFile in instruction %s\n", instruction);
             }
         }
-        if (strcmp(part, "110") == 0 || strcmp(part, "readFile") == 0 ){
+        if (strcmp(part, "110") == 0 ){
             if (i>=1){
-                const char *filename = resolve_string_arg(process, parts[i-1]);
-                parts[i] = callReadFile((char *)filename);
+                parts[i] = callReadFile(parts[i-1]);
             }
             else {
                 printf("Syntax Error: Missing filename for readFile in instruction %s\n", instruction);
@@ -278,19 +231,13 @@ void execute_instruction(Process* process) {
         }
     }
     
-    if (process->pcb->pc >= process->pcb->memory_bounds[1]) {
-        printf("Exec: Reached memory boundary, finishing\n");
-        process->pcb->state = FINISHED;
-        update_state_in_memory(process->pcb->pid, FINISHED);
-    } else {
-        process->pcb->pc += 1;
-        printf("Exec: Update PC\n");
-        update_pc_in_memory(process->pcb->pid, process->pcb->pc);
-    }
+//one?
+    process->pcb->pc += 1;
+    printf("Exec: Update PC\n");
+    update_pc_in_memory(process->pcb->pid, process->pcb->pc);
     printf("Exec: Free parts\n");
     free_parts(parts, count);
     printf("Exec: Done\n");
 }
-
 
 
