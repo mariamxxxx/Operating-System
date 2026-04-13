@@ -43,7 +43,7 @@ int writeFile(char* filename, char* content){ //write in file
 
     FILE* f= fopen(path,"w");
     if(f==NULL){
-        printf("Could not open file for writing\n");
+        printf("ERROR: could not open file for writing\n");
         return -1;
     }
     fprintf(f, "%s", content);
