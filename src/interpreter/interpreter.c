@@ -9,7 +9,9 @@
 
 char* substring(const char* src, int start, int length) {
     char* sub = malloc(length + 1);
-    if (sub == NULL) return NULL;
+    if (sub == NULL) {
+        return NULL;
+    }
 
     strncpy(sub, src + start, length);
     sub[length] = '\0';
@@ -74,60 +76,85 @@ char** splitAndReverse(const char* str, int* count) {
 // }
 
 void callSemWait(Process *process , int resourceType){
+    printf("SemWait: PID %d, Res %d\n", process->pcb->pid, resourceType);
     semWait(process, (enum RESOURCE) resourceType);
+    printf("SemWait done\n");
 }
 
 void callSemSignal(int resourceType){
+    printf("SemSignal: Res %d\n", resourceType);
     semSignal((enum RESOURCE) resourceType);
+    printf("SemSignal done\n");
 }
 
 void callAssign(int pid , char* varName, char* varValue){
+    printf("Assign: PID %d, %s = %s\n", pid, varName, varValue);
     writeToMemory(pid, varName, varValue);
+    printf("Assign done\n");
 }
 
 void callPrint(char* data){
+    printf("Print: %s\n", data);
     printData(data);
+    printf("Print done\n");
 }
 
 void callPrintFromTo(int from, int to){
+    printf("PrintFromTo: %d to %d\n", from, to);
     while(from<=to){
         char buffer[20];
         sprintf(buffer, "%d", from);
         printData(buffer);
         from++;
     }
+    printf("PrintFromTo done\n");
 }
 
 void callWriteFile(char* filename, char* content){
+    printf("WriteFile: %s\n", filename);
     writeFile(filename, content);
+    printf("WriteFile done\n");
 }
 
 char* callReadFile(char* filename){
-    return readFile(filename);
+    printf("ReadFile: %s\n", filename);
+    char* result = readFile(filename);
+    printf("ReadFile: got %s\n", result);
+    return result;
 }
 
 char* callTakeInput(){
-    return takeInput();
+    printf("TakeInput\n");
+    char* result = takeInput();
+    printf("Input: %s\n", result);
+    return result;
 }
 
 void execute_instruction(Process* process) { 
+    printf("Exec: PID %d\n", process->pcb->pid);
     if (process == NULL || process->pcb == NULL) {
+        printf("Exec: NULL process\n");
         return;
     }
 
+    printf("Exec: PC %d\n", process->pcb->pc);
     char* instruction = readInstruction(process->pcb->pc);
 
     if (instruction == NULL) {
+        printf("Exec: No instr, FINISHED\n");
         process->pcb->state = FINISHED;
         update_state_in_memory(process->pcb->pid, FINISHED);
         printf("Execution Error: No instruction found at PC %d\n", process->pcb->pc);
         return;
     }
 
+    printf("Exec: Instr '%s'\n", instruction);
     int count = 0;
     char** parts = splitAndReverse(instruction, &count);
 
+    printf("Exec: Parts\n");
     for (int i = 0; i < count; i++) {
+        printf("Exec: Part[%d] '%s'\n", i, parts[i]);
         char* part = parts[i];
     
         if (strcmp(part, "000") == 0 ){
@@ -193,11 +220,13 @@ void execute_instruction(Process* process) {
         }
     }
     
-    printf("Executing instruction at PC %d: %s\n", process->pcb->pc, instruction);
 //one?
     process->pcb->pc += 1;
+    printf("Exec: Update PC\n");
     update_pc_in_memory(process->pcb->pid, process->pcb->pc);
+    printf("Exec: Free parts\n");
     free_parts(parts, count);
+    printf("Exec: Done\n");
 }
 
 

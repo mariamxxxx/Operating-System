@@ -170,12 +170,15 @@ void init_memory(){
 
 // allocate a contiguous block of memory for a process, returning the starting index
 Process* allocate_memory(int pid, Process *proc){
+    printf("allocate_memory: PID=%d, code_line_count=%d\n", pid, proc->code_line_count);
     if (proc->pcb == NULL || proc->code_line_count > MAX_CODE_LINES)
         return NULL;
 
     int code_lines = proc->code_line_count;
     int num_words = 7 + code_lines; //4 pcb fields + 3 vars + code lines
+    printf("allocate_memory: num_words=%d\n", num_words);
     int start_index = allocate_block(pid, num_words);    
+    printf("allocate_memory: start_index=%d\n", start_index);
     if (start_index == -1)
         return NULL;
 
@@ -226,6 +229,7 @@ Process* allocate_memory(int pid, Process *proc){
     idx++;
 
     for (int i = 0; i < code_lines; i++){
+        printf("allocate_memory: setting mem[%d] to CODE_LINE, code='%s'\n", idx, proc->code_lines[i]);
         mem[idx].type = CODE_LINE;
         strncpy(mem[idx].payload.code_line, proc->code_lines[i], MAX_STRING - 1);
         mem[idx].payload.code_line[MAX_STRING - 1] = '\0'; //guarantee null termination
@@ -235,8 +239,10 @@ Process* allocate_memory(int pid, Process *proc){
 
     // Keep PCB runtime fields in sync with allocated memory layout.
     proc->pcb->pc = start_index + 7;
+    printf("allocate_memory: set PC to %d\n", proc->pcb->pc);
     proc->pcb->memory_bounds[0] = start_index;
     proc->pcb->memory_bounds[1] = start_index + num_words - 1;
+    printf("allocate_memory: memory_bounds [%d, %d]\n", proc->pcb->memory_bounds[0], proc->pcb->memory_bounds[1]);
 
     return proc;
 }
@@ -291,12 +297,19 @@ void write_word(int pid, char *key, char *value){
 }
 
 char *read_code_line(int pc){
-    if (pc < 0 || pc >= MEMORY_SIZE)
+    printf("read_code_line: pc=%d\n", pc);
+    if (pc < 0 || pc >= MEMORY_SIZE) {
+        printf("read_code_line: pc out of bounds\n");
         return NULL;
+    }
 
-    if (mem[pc].isFree || mem[pc].type != CODE_LINE)
+    printf("read_code_line: mem[%d].isFree=%d, type=%d\n", pc, mem[pc].isFree, mem[pc].type);
+    if (mem[pc].isFree || mem[pc].type != CODE_LINE) {
+        printf("read_code_line: not a valid code line\n");
         return NULL;
+    }
 
+    printf("read_code_line: returning '%s'\n", mem[pc].payload.code_line);
     return mem[pc].payload.code_line;
 }
 
