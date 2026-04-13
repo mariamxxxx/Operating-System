@@ -78,42 +78,20 @@ static char* parseLineToOpcode(char* line) {
     printf("parseLineToOpcode: final opcode='%s'\n", opcode);
     strcat(result, opcode);
 
-    char *instructionParameter1 = (token_count > 1) ? instruction[1] : NULL;
-    printf("parseLineToOpcode: param1='%s'\n", instructionParameter1 ? instructionParameter1 : "NULL");
+    for (int token_index = 1; token_index < token_count; token_index++) {
+        char *token = instruction[token_index];
+        const char *mapped = token;
 
-    if (strcmp(opcode, "000") == 0 || strcmp(opcode, "001") == 0) {
-        printf("parseLineToOpcode: semWait/semSignal handling\n");
+        for (int j = 0; j < 7; j++) {
+            if (strcmp(token, AvailableFunctions[j]) == 0) {
+                mapped = AvailableFunctionsOpcodes[j];
+                printf("parseLineToOpcode: converted token '%s' to opcode '%s'\n", token, mapped);
+                break;
+            }
+        }
+
         strcat(result, "*");
-        if (instructionParameter1 != NULL && strcmp(instructionParameter1, "userInput") == 0) {
-            strcat(result, "0");
-        }
-        else if (instructionParameter1 != NULL && strcmp(instructionParameter1, "userOutput") == 0) {
-            strcat(result, "1");
-        }
-        else if (instructionParameter1 != NULL && strcmp(instructionParameter1, "file") == 0) {
-            strcat(result, "2");
-        }
-        else if (instructionParameter1 != NULL) {
-            strcat(result, instructionParameter1);
-        }
-
-    }
-    else {
-        printf("parseLineToOpcode: other instruction handling\n");
-        if (instructionParameter1 != NULL) {
-            strcat(result, "*");
-            strcat(result, instructionParameter1);
-        }
-
-        if (token_count > 2 && instruction[2] != NULL) {
-            strcat(result, "*");
-            strcat(result, instruction[2]);
-        }
-
-        if (token_count > 3 && instruction[3] != NULL) {
-            strcat(result, "*");
-            strcat(result, instruction[3]);
-        }
+        strcat(result, mapped);
     }
 
     printf("parseLineToOpcode: result='%s'\n", result);

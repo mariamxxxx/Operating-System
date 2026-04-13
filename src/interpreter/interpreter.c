@@ -120,7 +120,7 @@ void callWriteFile(char* filename, char* content){
 
 char* callReadFile(char* filename){
     printf("ReadFile: %s\n", filename);
-    char* result = readFile(readFromMemory(global_pid, filename));
+    char* result = readFile(filename);
     printf("ReadFile: got %s\n", result);
     return result;
 }
@@ -221,6 +221,7 @@ void execute_instruction(Process* process) {
         if (strcmp(part, "110") == 0 ){
             if (i>=1){
                 parts[i] = callReadFile(parts[i-1]);
+                
             }
             else {
                 printf("Syntax Error: Missing filename for readFile in instruction %s\n", instruction);
