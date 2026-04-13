@@ -1,54 +1,58 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "process/pcb.h"
-#include "scheduler/scheduler.h"
-#include "synchronization/mutex.h"
-#include "interpreter/interpreter.h"
-#include "interpreter/interpreter.c"
-#include "memory/memoryy.h"
-#include "memory/memory.c"
-#include "process/processs.h"
 
+#include "interpreter/parser.h"
+#include "os/os_core.h"
 
-static int pid = 0;
-void controller(){
-    initialize_memory();
+static void build_program_path(const char *name, char *out, size_t out_size) {
+    if (strchr(name, '/') || strchr(name, '\\')) {
+        snprintf(out, out_size, "%s", name);
+        return;
+    }
+    snprintf(out, out_size, "src/programs/%s", name);
 }
 
-void process_handler(FILE *input_file, int arrival_time) {
-    // 1. Read and interpret the input file to create a Process structure
-    loadAndInterpret(input_file);
+int main(void) {
+    int safety_cycles = 1000;
+    printf("main: starting simulator\n");
 
-    // 2. Create process
-    Process *proc = initProcess(pid++, CountLines(fileContent), arrival_time); // Initialize process with PID and line count
-    if (proc == NULL) {
-        fprintf(stderr, "Failed to initialize process from file %s.\n", input_file);
-        return;
+    os_init(RR);
+
+    char name[256];
+    char path[512];
+
+    printf("Enter program filename (e.g., Program_1.txt): ");
+    if (fgets(name, sizeof(name), stdin) == NULL) {
+        printf("main: no input provided\n");
+        return 1;
     }
 
-    // 3. Allocate memory for the process
-    proc = allocate_memory(proc->pcb->pid, proc);
-    if (proc == NULL) {
-        fprintf(stderr, "Memory allocation failed for process %d.\n", proc->pcb->pid);
-        return;
+    size_t len = strlen(name);
+    if (len > 0 && name[len - 1] == '\n') {
+        name[len - 1] = '\0';
     }
 
-    // 4. Add the process to the scheduler's ready queue
-    add_to_ready_queue(proc);
+    build_program_path(name, path, sizeof(path));
+    printf("main: loading %s\n", path);
+    loadAndInterpret(path, 0);
 
-    // 5. Update the PCB in memory
-    update_pcb_in_memory(proc->pcb->pid, proc->pcb);
+    os_start();
+    while (!os_is_idle() && safety_cycles-- > 0) {
+        OSSnapshot snapshot = os_get_snapshot();
+        printf("Tick=%d Running=%d Ready=%d Blocked=%d\n",
+               snapshot.clock_tick,
+               snapshot.current_pid,
+               snapshot.ready_queue_size,
+               snapshot.blocked_queue_size);
+        os_tick();
+    }
 
-    // 6. Print memory state for debugging
-    print_memory();
-};
+    os_pause();
 
-int main() {
-    init_memory();
+    if (safety_cycles <= 0) {
+        printf("Simulation stopped by safety limit.\n");
+    }
 
-    // add file 1
-    //controller();
-    controller();
     return 0;
 }

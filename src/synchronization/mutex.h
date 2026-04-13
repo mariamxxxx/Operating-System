@@ -2,7 +2,7 @@
 #ifndef MUTEX_H
 #define MUTEX_H
 
-#include "../process/pcb.h"
+#include "../process/processs.h"
 #include "../scheduler/queue.h"
 
 enum RESOURCE {

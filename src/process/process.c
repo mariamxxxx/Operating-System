@@ -1,36 +1,40 @@
 #include "processs.h"
 #include <stdlib.h>
+#include <string.h>
 
 int next_pid = 1; // Start IDs at 1
 
-PCB* create_process(int mem_start, int mem_end, int burst_time) {
-    PCB* new_pcb = (PCB*)malloc(sizeof(PCB));
-    
-    if (new_pcb == NULL) return NULL;
+Process* create_process(int mem_start, int mem_end, int burst_time) {
+    Process *process = (Process *) malloc(sizeof(Process));
 
-    //assign unique ID
-    new_pcb->pid = next_pid++;
+    if (process == NULL) return NULL;
 
-    //set initial state
-    new_pcb->state = READY;
+    process->pcb = (PCB *) malloc(sizeof(PCB));
+    if (process->pcb == NULL) {
+        free(process);
+        return NULL;
+    }
 
-    // initialize Program Counter to the start of memory 
-    new_pcb->pc = mem_start;
+    process->pcb->pid = next_pid++;
+    process->pcb->state = READY;
+    process->pcb->pc = mem_start;
+    process->pcb->memory_bounds[0] = mem_start;
+    process->pcb->memory_bounds[1] = mem_end;
 
-    //mem boundries
-    new_pcb->memory_bounds[0] = mem_start;
-    new_pcb->memory_bounds[1] = mem_end;
+    process->var1 = NULL;
+    process->var2 = NULL;
+    process->var3 = NULL;
+    process->code_line_count = burst_time;
+    process->arrival_time = 0;
+    memset(process->code_lines, 0, sizeof(process->code_lines));
 
-    //initialize Scheduler fields
-    // new_pcb->burst_time = burst_time;
-    // new_pcb->wait_time = 0;
-
-    return new_pcb;
+    return process;
 }
 
-void destroy_process(PCB* p) {
-    if (p != NULL) {
-        free(p);
+void destroy_process(Process* process) {
+    if (process != NULL) {
+        free(process->pcb);
+        free(process);
     }
 }
 
@@ -41,26 +45,22 @@ PCB* initPCB(int pid) {
     }
 
     pcb->pid = pid;
-    pcb->state = NEW;        
-    pcb->pc = -1;         
-
+    pcb->state = NEW;
+    pcb->pc = -1;
     pcb->memory_bounds[0] = -1;
     pcb->memory_bounds[1] = -1;
-
-    //pcb->burst_time = 0;
-    //pcb->wait_time  = 0;
 
     return pcb;
 }
 
-Process* initProcess(int pid , int arrival_time) {
+Process* initProcess(int arrival_time) {
 
     Process* process = (Process*) malloc(sizeof(Process));
     if (process == NULL) {
         return NULL;
     }
 
-    process->pcb = initPCB(pid);
+    process->pcb = initPCB(next_pid++);
     if (process->pcb == NULL) {
         free(process);
         return NULL;

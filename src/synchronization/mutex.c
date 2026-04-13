@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include "mutex.h"
-#include "../process/pcb.h"
 #include "../scheduler/queue.h"
 #include "../scheduler/scheduler.h"
 
@@ -74,7 +73,7 @@ void semWait(Process* process, enum RESOURCE r){
 
     if(binSem[r]==1){
         binSem[r]=0;
-    printf("%s is now occupied\n", resource_name(r));
+        printf("%s is now occupied\n", resource_name(r));
 
     }
     else{
@@ -94,7 +93,7 @@ void semSignal(enum RESOURCE r){
 
     if (is_empty(&blockedQueues[r])){
         binSem[r]=1;
-    printf("%s is now available\n", resource_name(r));
+        printf("%s is now available\n", resource_name(r));
 
     }
     else{
