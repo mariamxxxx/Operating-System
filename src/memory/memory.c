@@ -41,6 +41,7 @@ static void delete_memory_map_entry(int pid, int index){
     map_i--;
 }
 
+// TO BE CALLED
 void update_state_in_memory(int pid, ProcessState state) {
     int start = -1;
     for (int i = 0; i < map_i; i++) {
@@ -81,6 +82,23 @@ void free_process_memory(int pid){
         }
     }
     // can add delete here but more redundant
+}
+
+char *read_code_line(int pc){
+    printf("read_code_line: pc=%d\n", pc);
+    if (pc < 0 || pc >= MEMORY_SIZE) {
+        printf("read_code_line: pc out of bounds\n");
+        return NULL;
+    }
+
+    printf("read_code_line: mem[%d].isFree=%d, type=%d\n", pc, mem[pc].isFree, mem[pc].type);
+    if (mem[pc].isFree || mem[pc].type != CODE_LINE) {
+        printf("read_code_line: not a valid code line\n");
+        return NULL;
+    }
+
+    printf("read_code_line: returning '%s'\n", mem[pc].payload.code_line);
+    return mem[pc].payload.code_line;
 }
 
 
@@ -138,23 +156,23 @@ static int allocate_block(int pid, int num_words){
     return -1;
 }
 
-// keeps pcb in sync whenever it is updated 
-void update_pcb_in_memory(int pid, PCB *pcb) {
-    int start = -1;
-    for (int i = 0; i < map_i; i++) {
-        if (memory_map[i].pid == pid) {
-            start = memory_map[i].start_index;
-            break;
-        }
-    }
-    if (start == -1) return;
+// // keeps pcb in sync whenever it is updated 
+// void update_pcb_in_memory(int pid, PCB *pcb) {
+//     int start = -1;
+//     for (int i = 0; i < map_i; i++) {
+//         if (memory_map[i].pid == pid) {
+//             start = memory_map[i].start_index;
+//             break;
+//         }
+//     }
+//     if (start == -1) return;
 
-    mem[start].payload.pid = pcb->pid;
-    mem[start + 1].payload.state = pcb->state;
-    mem[start + 2].payload.program_counter = pcb->pc;
-    mem[start + 3].payload.memory_boundary[0] = pcb->memory_bounds[0];
-    mem[start + 3].payload.memory_boundary[1] = pcb->memory_bounds[1];
-}
+//     mem[start].payload.pid = pcb->pid;
+//     mem[start + 1].payload.state = pcb->state;
+//     mem[start + 2].payload.program_counter = pcb->pc;
+//     mem[start + 3].payload.memory_boundary[0] = pcb->memory_bounds[0];
+//     mem[start + 3].payload.memory_boundary[1] = pcb->memory_bounds[1];
+// }
 
 
 
@@ -197,9 +215,6 @@ Process* allocate_memory(int pid, Process *proc){
     idx++;
 
     mem[idx].type = PCB_FIELD;
-    // mem[idx].payload.memory_boundary[0] = proc->pcb->memory_bounds[start_index];
-    // mem[idx].payload.memory_boundary[1] = proc->pcb->memory_bounds[start_index + num_words]; // point to last code line
- 
     mem[idx].payload.memory_boundary[0] = start_index;
     mem[idx].payload.memory_boundary[1] = start_index + num_words - 1; // point to last code line
     idx++;
@@ -235,7 +250,6 @@ Process* allocate_memory(int pid, Process *proc){
         mem[idx].payload.code_line[MAX_STRING - 1] = '\0'; //guarantee null termination
         idx++;
     }
-    //COPILOT-->
 
     // Keep PCB runtime fields in sync with allocated memory layout.
     proc->pcb->pc = start_index + 7;
@@ -294,23 +308,6 @@ void write_word(int pid, char *key, char *value){
             return;
         }
     }
-}
-
-char *read_code_line(int pc){
-    printf("read_code_line: pc=%d\n", pc);
-    if (pc < 0 || pc >= MEMORY_SIZE) {
-        printf("read_code_line: pc out of bounds\n");
-        return NULL;
-    }
-
-    printf("read_code_line: mem[%d].isFree=%d, type=%d\n", pc, mem[pc].isFree, mem[pc].type);
-    if (mem[pc].isFree || mem[pc].type != CODE_LINE) {
-        printf("read_code_line: not a valid code line\n");
-        return NULL;
-    }
-
-    printf("read_code_line: returning '%s'\n", mem[pc].payload.code_line);
-    return mem[pc].payload.code_line;
 }
 
 void swap_out(int pid, int word_count){

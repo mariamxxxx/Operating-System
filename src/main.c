@@ -1,25 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
+#include <string.h>
 
 #include "interpreter/parser.h"
 #include "os/os_core.h"
 
-typedef struct {
-    const char *filename;
-    int arrival_time;
-    pthread_mutex_t *load_mutex;
-} ProgramLoadArgs;
-
-static void *load_program_thread(void *arg) {
-    ProgramLoadArgs *args = (ProgramLoadArgs *) arg;
-
-    pthread_mutex_lock(args->load_mutex);
-    printf("main: thread loading %s\n", args->filename);
-    loadAndInterpret(args->filename, args->arrival_time);
-    pthread_mutex_unlock(args->load_mutex);
-
-    return NULL;
+static void build_program_path(const char *name, char *out, size_t out_size) {
+    if (strchr(name, '/') || strchr(name, '\\')) {
+        snprintf(out, out_size, "%s", name);
+        return;
+    }
+    snprintf(out, out_size, "src/programs/%s", name);
 }
 
 int main(void) {
@@ -28,34 +19,23 @@ int main(void) {
 
     os_init(RR);
 
-    pthread_mutex_t load_mutex;
-    pthread_mutex_init(&load_mutex, NULL);
+    char name[256];
+    char path[512];
 
-    const char *programs[] = {
-        "src/programs/Program_1.txt",
-        "src/programs/Program_2.txt",
-        "src/programs/Program_3.txt"
-    };
-    const int arrival_times[] = {1, 2, 3};
-    const int program_count = sizeof(programs) / sizeof(programs[0]);
-
-    #define PROGRAM_COUNT 3
-    pthread_t threads[PROGRAM_COUNT];
-    ProgramLoadArgs args[PROGRAM_COUNT];
-
-    for (int i = 0; i < program_count && i < PROGRAM_COUNT; i++) {
-        args[i].filename = programs[i];
-        args[i].arrival_time = arrival_times[i];
-        args[i].load_mutex = &load_mutex;
-        pthread_create(&threads[i], NULL, load_program_thread, &args[i]);
+    printf("Enter program filename (e.g., Program_1.txt): ");
+    if (fgets(name, sizeof(name), stdin) == NULL) {
+        printf("main: no input provided\n");
+        return 1;
     }
 
-    for (int i = 0; i < program_count; i++) {
-        pthread_join(threads[i], NULL);
-        printf("main: thread finished loading %s\n", programs[i]);
+    size_t len = strlen(name);
+    if (len > 0 && name[len - 1] == '\n') {
+        name[len - 1] = '\0';
     }
 
-    pthread_mutex_destroy(&load_mutex);
+    build_program_path(name, path, sizeof(path));
+    printf("main: loading %s\n", path);
+    loadAndInterpret(path, 0);
 
     os_start();
     while (!os_is_idle() && safety_cycles-- > 0) {

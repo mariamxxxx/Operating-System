@@ -4,8 +4,24 @@
 #include "syscalls.h"
 #include "../memory/memoryy.h"
 
+static void build_disk_path(const char *name, char *out, size_t out_size) {
+    if (name == NULL || out == NULL || out_size == 0) {
+        return;
+    }
+
+    if (strchr(name, '/') || strchr(name, '\\')) {
+        snprintf(out, out_size, "%s", name);
+        return;
+    }
+
+    snprintf(out, out_size, "src/disk/%s", name);
+}
+
 char* readFile(char* filename){ //read file
-    FILE* f= fopen(filename,"r");
+    char path[512];
+    build_disk_path(filename, path, sizeof(path));
+
+    FILE* f= fopen(path,"r");
     if(f==NULL){
         printf("File not found\n");
         return NULL;
@@ -22,7 +38,10 @@ char* readFile(char* filename){ //read file
 }
 
 int writeFile(char* filename, char* content){ //write in file
-    FILE* f= fopen(filename,"w");
+    char path[512];
+    build_disk_path(filename, path, sizeof(path));
+
+    FILE* f= fopen(path,"w");
     if(f==NULL){
         printf("Could not open file for writing\n");
         return -1;
@@ -33,7 +52,7 @@ int writeFile(char* filename, char* content){ //write in file
 }
 
 void printData(char* data ){ //print values
-    printf("Printed value: %s", data);
+    printf("Printed value: %s \n", data);
 }
 
 char* takeInput(){ //take input from user

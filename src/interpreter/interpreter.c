@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "../memory/memoryy.h"
 #include "../os/syscalls.h"
@@ -110,6 +111,54 @@ void callPrintFromTo(int from, int to){
     printf("PrintFromTo done\n");
 }
 
+static int is_integer_token(const char *value) {
+    if (value == NULL || *value == '\0') {
+        return 0;
+    }
+
+    const unsigned char *p = (const unsigned char *)value;
+    if (*p == '-' || *p == '+') {
+        p++;
+    }
+
+    if (*p == '\0') {
+        return 0;
+    }
+
+    while (*p != '\0') {
+        if (!isdigit(*p)) {
+            return 0;
+        }
+        p++;
+    }
+
+    return 1;
+}
+
+static int resolve_int_arg(Process *process, const char *token, int *out_value) {
+    if (is_integer_token(token)) {
+        *out_value = atoi(token);
+        return 1;
+    }
+
+    char *value = readFromMemory(process->pcb->pid, (char *)token);
+    if (value == NULL || !is_integer_token(value)) {
+        return 0;
+    }
+
+    *out_value = atoi(value);
+    return 1;
+}
+
+static const char *resolve_string_arg(Process *process, const char *token) {
+    char *value = readFromMemory(process->pcb->pid, (char *)token);
+    if (value != NULL && value[0] != '\0') {
+        return value;
+    }
+
+    return token;
+}
+
 void callWriteFile(char* filename, char* content){
     printf("WriteFile: %s\n", filename);
     writeFile(filename, content);
@@ -183,7 +232,8 @@ void execute_instruction(Process* process) {
         }
         if (strcmp(part, "011") == 0 ){
             if (i>=1){
-                callPrint(parts[i-1]);
+                const char *value = resolve_string_arg(process, parts[i-1]);
+                callPrint((char *)value);
             }
             else {
                 printf("Syntax Error: Missing data to print for print in instruction %s\n", instruction);
@@ -191,9 +241,14 @@ void execute_instruction(Process* process) {
         }
         if (strcmp(part, "100") == 0 ){
             if (i>=2){
-                int from = atoi(parts[i-1]);
-                int to = atoi(parts[i-2]);
-                callPrintFromTo(from, to);
+                int from = 0;
+                int to = 0;
+                if (!resolve_int_arg(process, parts[i-1], &from) ||
+                    !resolve_int_arg(process, parts[i-2], &to)) {
+                    printf("Runtime Error: printFromTo arguments must be integers or variables with integer values\n");
+                } else {
+                    callPrintFromTo(from, to);
+                }
             }
             else {
                 printf("Syntax Error: Missing range values for printFromTo in instruction %s\n", instruction);
@@ -201,15 +256,18 @@ void execute_instruction(Process* process) {
         }
         if (strcmp(part, "101") == 0 ){
             if (i>=2){
-                callWriteFile(parts[i-1], parts[i-2]);
+                const char *filename = resolve_string_arg(process, parts[i-1]);
+                const char *content = resolve_string_arg(process, parts[i-2]);
+                callWriteFile((char *)filename, (char *)content);
             }
             else {
                 printf("Syntax Error: Missing filename or content for writeFile in instruction %s\n", instruction);
             }
         }
-        if (strcmp(part, "110") == 0 ){
+        if (strcmp(part, "110") == 0 || strcmp(part, "readFile") == 0 ){
             if (i>=1){
-                parts[i] = callReadFile(parts[i-1]);
+                const char *filename = resolve_string_arg(process, parts[i-1]);
+                parts[i] = callReadFile((char *)filename);
             }
             else {
                 printf("Syntax Error: Missing filename for readFile in instruction %s\n", instruction);
@@ -220,10 +278,15 @@ void execute_instruction(Process* process) {
         }
     }
     
-//one?
-    process->pcb->pc += 1;
-    printf("Exec: Update PC\n");
-    update_pc_in_memory(process->pcb->pid, process->pcb->pc);
+    if (process->pcb->pc >= process->pcb->memory_bounds[1]) {
+        printf("Exec: Reached memory boundary, finishing\n");
+        process->pcb->state = FINISHED;
+        update_state_in_memory(process->pcb->pid, FINISHED);
+    } else {
+        process->pcb->pc += 1;
+        printf("Exec: Update PC\n");
+        update_pc_in_memory(process->pcb->pid, process->pcb->pc);
+    }
     printf("Exec: Free parts\n");
     free_parts(parts, count);
     printf("Exec: Done\n");
