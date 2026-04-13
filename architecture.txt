@@ -33,3 +33,10 @@ Operating System/
 │       ├── gui.h                      # Functions to display queues, memory, running process.
 │       └── gui_ncurses.c              # Example using ncurses for terminal-based visual.
 └── programs/                          # Provided .txt program files (program1.txt, program2.txt, program3.txt)
+
+
+build: 
+C:\msys64\ucrt64\bin\gcc.exe -Isrc -Isrc/os -Isrc/process -Isrc/memory -Isrc/interpreter -Isrc/scheduler -Isrc/synchronization -g "C:\me\sem 6\operating systems\Operating System\src\main.c" "C:\me\sem 6\operating systems\Operating System\src\process\process.c" "C:\me\sem 6\operating systems\Operating System\src\os\syscalls.c" "C:\me\sem 6\operating systems\Operating System\src\os\os_core.c" "C:\me\sem 6\operating systems\Operating System\src\synchronization\mutex.c" "C:\me\sem 6\operating systems\Operating System\src\memory\memory.c" "C:\me\sem 6\operating systems\Operating System\src\scheduler\queue.c" "C:\me\sem 6\operating systems\Operating System\src\scheduler\mlfq.c" "C:\me\sem 6\operating systems\Operating System\src\scheduler\hrrn.c" "C:\me\sem 6\operating systems\Operating System\src\scheduler\scheduler.c" "C:\me\sem 6\operating systems\Operating System\src\scheduler\rr.c" "C:\me\sem 6\operating systems\Operating System\src\interpreter\parser.c" "C:\me\sem 6\operating systems\Operating System\src\interpreter\interpreter.c" -o "C:\me\sem 6\operating systems\Operating System\build\os_sim.exe" -pthread
+
+run: 
+& "C:\me\sem 6\operating systems\Operating System\build\os_sim.exe"
