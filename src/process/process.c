@@ -26,6 +26,8 @@ Process* create_process(int mem_start, int mem_end, int burst_time) {
     process->var3 = NULL;
     process->code_line_count = burst_time;
     process->arrival_time = 0;
+    process->wait_time = 0;
+    process->ready_since = 0;
     memset(process->code_lines, 0, sizeof(process->code_lines));
 
     return process;
@@ -73,7 +75,8 @@ Process* initProcess(int arrival_time) {
     process->code_line_count = 0;
     process->arrival_time = arrival_time;
 
-
+    process->wait_time = 0;
+    process->ready_since= 0;
 
     // // Clear code memory
     // for (int i = 0; i < MAX_CODE_LINES; i++) {

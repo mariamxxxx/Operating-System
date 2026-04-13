@@ -1,5 +1,5 @@
-#ifndef PROCESS_H
-#define PROCESS_H
+#ifndef PROCESSS_H
+#define PROCESSS_H
 
 #include "pcb.h"
 
@@ -20,6 +20,8 @@ typedef struct {
     char code_lines[MAX_CODE_LINES][MAX_STRING];
     int code_line_count;
     int arrival_time;
+    int wait_time;
+    int ready_since;
 } Process;
 
 // initialize a new process

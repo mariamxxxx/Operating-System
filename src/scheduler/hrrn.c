@@ -28,10 +28,12 @@ Process *execute_hrrn(){
     while (current != NULL) {
         Process *p=current->process;
         wait = os_get_clock() - p->arrival_time;
+        int current_wait = p->wait_time + (os_get_clock() - p->ready_since);
+        //double ratio = (double)(current_wait + burst) / burst;
         int burst = (p->code_line_count + time_quantum - 1) / time_quantum;
         if (burst < 1) burst = 1;
         
-        double ratio = (double)(wait + burst) / burst;
+        double ratio = (double)(current_wait + burst) / burst;
         printf("  P%d: arrival=%d  wait=%d  burst=%d  ratio=%.2f\n",p->pcb->pid, p->arrival_time, wait, burst, ratio);
 
         if(ratio>myrate) {
@@ -43,7 +45,7 @@ Process *execute_hrrn(){
 
     //Remove the selected process from the middle of the queue
     remove_from_queue(&os_ready_queue, best);
- 
+    best->wait_time += os_get_clock() - best->ready_since;
     best->pcb->state = RUNNING;
     update_state_in_memory(best->pcb->pid, RUNNING);
     printf("HRRN: Selected Process %d (Ratio: %.2f)\n", best->pcb->pid, myrate);
@@ -71,7 +73,7 @@ Process *execute_hrrn(){
     }
     QueueNode *curr= os_ready_queue.head;
     while(curr!=NULL){
-        wait += inst_count;
+        curr->process->wait_time += inst_count;
         curr=curr->next;
     }
 

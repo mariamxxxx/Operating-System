@@ -17,7 +17,7 @@ int main(void) {
     int safety_cycles = 1000;
     printf("main: starting simulator\n");
 
-    os_init(RR);
+    os_init(HRRN);
 
     char name[256];
     char path[512];

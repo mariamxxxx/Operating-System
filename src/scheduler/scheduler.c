@@ -64,6 +64,7 @@ void add_process_to_scheduler(Process *process) {
     }
 
     process->pcb->state = READY;
+    process->ready_since= os_get_clock();
     if (current_algo == MLFQ) {
         enqueue(process, &mlfq_queues[0]); // new processes start at highest priority
     } else {
