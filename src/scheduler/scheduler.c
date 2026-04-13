@@ -3,6 +3,7 @@
 #include <stddef.h> //for null pointer 
 #include "../memory/memoryy.h"
 #include "../interpreter/interpreter.h"
+#include "../os/os_core.h"
 
 //the global queues for the whole OS
  Queue os_ready_queue;
