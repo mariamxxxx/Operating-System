@@ -33,7 +33,7 @@ int writeFile(char* filename, char* content){ //write in file
 }
 
 void printData(char* data ){ //print values
-    printf("Printed value: %s", data);
+    printf("Printed value: %s \n", data);
 }
 
 char* takeInput(){ //take input from user

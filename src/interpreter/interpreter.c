@@ -7,6 +7,8 @@
 #include "../synchronization/mutex.h"
 #include "parser.h"
 
+int global_pid ;
+
 char* substring(const char* src, int start, int length) {
     char* sub = malloc(length + 1);
     if (sub == NULL) {
@@ -95,7 +97,7 @@ void callAssign(int pid , char* varName, char* varValue){
 
 void callPrint(char* data){
     printf("Print: %s\n", data);
-    printData(data);
+    printData(readFromMemory(global_pid, data));
     printf("Print done\n");
 }
 
@@ -112,13 +114,13 @@ void callPrintFromTo(int from, int to){
 
 void callWriteFile(char* filename, char* content){
     printf("WriteFile: %s\n", filename);
-    writeFile(filename, content);
+    writeFile(readFromMemory(global_pid, filename), readFromMemory(global_pid, content));
     printf("WriteFile done\n");
 }
 
 char* callReadFile(char* filename){
     printf("ReadFile: %s\n", filename);
-    char* result = readFile(filename);
+    char* result = readFile(readFromMemory(global_pid, filename));
     printf("ReadFile: got %s\n", result);
     return result;
 }
@@ -131,6 +133,9 @@ char* callTakeInput(){
 }
 
 void execute_instruction(Process* process) { 
+
+    global_pid = process->pcb->pid;
+
     printf("Exec: PID %d\n", process->pcb->pid);
     if (process == NULL || process->pcb == NULL) {
         printf("Exec: NULL process\n");
@@ -191,8 +196,14 @@ void execute_instruction(Process* process) {
         }
         if (strcmp(part, "100") == 0 ){
             if (i>=2){
-                int from = atoi(parts[i-1]);
-                int to = atoi(parts[i-2]);
+                char* from_str = readFromMemory(global_pid, parts[i-1]);
+                char* to_str = readFromMemory(global_pid, parts[i-2]);
+                printf("Exec: printFromTo from_var='%s' from_val='%s', to_var='%s' to_val='%s'\n", 
+                       parts[i-1], from_str ? from_str : "NULL", 
+                       parts[i-2], to_str ? to_str : "NULL");
+                int from = from_str ? atoi(from_str) : 0;
+                int to = to_str ? atoi(to_str) : 0;
+                printf("Exec: printFromTo from=%d, to=%d\n", from, to);
                 callPrintFromTo(from, to);
             }
             else {
