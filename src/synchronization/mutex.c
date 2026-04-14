@@ -90,7 +90,7 @@ void semSignal(enum RESOURCE r){
 
     if (is_empty(&blockedQueues[r])){
         binSem[r]=1;
-        printf("%s is now available\n", resource_name(r));
+        printf("%s is now released\n", resource_name(r));
 
     }
     else{
