@@ -53,10 +53,7 @@ void init_mutex(void){
         binSem[i] = 1;
         init_queue(&blockedQueues[i]);
     }
-//COMMENT LATER
-    init_queue(&general_blocked_queue);
-    init_queue(&os_ready_queue);
-    //CHECK WITH ROUKA
+
 }
 
 void semWait(Process* process, enum RESOURCE r){
