@@ -13,8 +13,9 @@ void init_mlfq() {
 }
 
 Process* execute_mlfq() {
-
     printf("Executing Multi-Level Feedback Queue Algorithm");
+    print_all_queues();
+
     Process *current_process = NULL;
     int current_level = -1;
 

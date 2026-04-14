@@ -7,7 +7,8 @@
 
 Process* execute_round_robin() {
     printf("Executing Round Robin Algorithm");
-    
+    print_all_queues();
+
     if (os_ready_queue.head == NULL) {
         printf("Scheduler: no proccesses in the ready queue\n");
         return NULL; // No processes ready to run
