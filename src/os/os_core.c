@@ -3,6 +3,7 @@
 #include <stddef.h>
 
 #include "../synchronization/mutex.h"
+#include "../scheduler/queue.h"
 
 // Memory module is currently included through inconsistent headers, so we forward declare.
 void init_memory(void);
@@ -12,6 +13,8 @@ static int g_is_running = 0;
 static int g_is_initialized = 0;
 static SchedulerAlgorithm g_algorithm = RR;
 static Process *g_running_process = NULL;
+
+extern Queue mlfq_queues[4];
 
 void os_init(SchedulerAlgorithm algorithm) {
 	g_algorithm = algorithm;
@@ -116,6 +119,14 @@ int os_is_idle(void) {
 
 	if (general_blocked_queue.size > 0) {
 		return 0;
+	}
+
+	if (g_algorithm == MLFQ) {
+		for (int i = 0; i < 4; i++) {
+			if (mlfq_queues[i].size > 0) {
+				return 0;
+			}
+		}
 	}
 
 	return 1;

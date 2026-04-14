@@ -1,7 +1,7 @@
 #ifndef MEMORYY_H
 #define MEMORYY_H
 
-#define MEMORY_SIZE 40
+#define MEMORY_SIZE 100
 #include "../process/pcb.h"
 #include "../process/processs.h"
 

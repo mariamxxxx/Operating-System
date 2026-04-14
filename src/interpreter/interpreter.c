@@ -63,15 +63,15 @@ static int parse_resource_token(const char *token) {
     }
 
     if (strcmp(token, "0") == 0 || strcmp(token, "userInput") == 0 || strcmp(token, "USER_INPUT") == 0) {
-        return USER_INPUT;
+        return 0;
     }
 
     if (strcmp(token, "1") == 0 || strcmp(token, "userOutput") == 0 || strcmp(token, "USER_OUTPUT") == 0) {
-        return USER_OUTPUT;
+        return 1;
     }
 
-    if (strcmp(token, "2") == 0 || strcmp(token, "fileResource") == 0 || strcmp(token, "FILE_RESOURCE") == 0) {
-        return FILE_RESOURCE;
+    if (strcmp(token, "2") == 0 || strcmp(token, "file") == 0 || strcmp(token, "fileResource") == 0 || strcmp(token, "FILE_RESOURCE") == 0) {
+        return 2;
     }
 
     return -1;
@@ -110,13 +110,21 @@ void callSemSignal(int resourceType){
 
 void callAssign(int pid , char* varName, char* varValue){
     printf("Assign: PID %d, %s = %s\n", pid, varName, varValue);
+    if (varValue == NULL) {
+        printf("Assign: NULL value, skipping assignment\n");
+        return;
+    }
     writeToMemory(pid, varName, varValue);
     printf("Assign done\n");
 }
 
 void callPrint(char* data){
     printf("Print: %s\n", data);
-    printData(readFromMemory(global_pid, data));
+    if (data == NULL) {
+        printData("(null)");
+    } else {
+        printData(readFromMemory(global_pid, data));
+    }
     printf("Print done\n");
 }
 
@@ -133,15 +141,24 @@ void callPrintFromTo(int from, int to){
 
 void callWriteFile(char* filename, char* content){
     printf("WriteFile: %s\n", filename);
-    writeFile(readFromMemory(global_pid, filename), readFromMemory(global_pid, content));
+    char* contentValue = readFromMemory(global_pid, content);
+    if (contentValue == NULL) {
+        printf("Variable %s not found, skipping writeFile\n", content);
+        return;
+    }
+    writeFile( readFromMemory(global_pid, filename), contentValue);
     printf("WriteFile done\n");
 }
 
 char* callReadFile(char* filename){
     printf("ReadFile: %s\n", filename);
-    char* result = readFile(filename);
+    char* result = readFromMemory(global_pid, filename);
+    if (result == NULL) {
+        printf("Variable %s not found in memory for process id %d\n", filename, global_pid);
+        return strdup("");  // Return malloced empty string
+    }
     printf("ReadFile: got %s\n", result);
-    return result;
+    return strdup(result);  // Return malloced copy
 }
 
 char* callTakeInput(){

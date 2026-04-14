@@ -111,8 +111,16 @@ void semSignal(enum RESOURCE r){
         }
         nextProcess->pcb->state = READY;
         printf("Next Process (pid = %d) is %s\n", nextProcess->pcb->pid, state_name(nextProcess->pcb->state));
-        enqueue(nextProcess, &os_ready_queue);
-        printf("Next Process (pid = %d) is enqueued in the general ready queue.\n", nextProcess->pcb->pid);
+        
+        // Enqueue to appropriate queue based on scheduler algorithm
+        SchedulerAlgorithm algo = get_current_algo();
+        if (algo == MLFQ) {
+            enqueue(nextProcess, &mlfq_queues[0]);  // Re-enter at highest priority
+            printf("Next Process (pid = %d) is enqueued in MLFQ Queue 0.\n", nextProcess->pcb->pid);
+        } else {
+            enqueue(nextProcess, &os_ready_queue);
+            printf("Next Process (pid = %d) is enqueued in the general ready queue.\n", nextProcess->pcb->pid);
+        }
         binSem[r] = 0;
     }
 }

@@ -1,0 +1,769 @@
+main: starting simulator
+main: loading src/programs/Program_1.txt at arrival_time=0
+loadAndInterpret: filename='src/programs/Program_1.txt', arrival_time=0
+main: loading src/programs/Program_2.txt at arrival_time=1
+loadAndInterpret: filename='src/programs/Program_2.txt', arrival_time=1
+main: loading src/programs/Program_3.txt at arrival_time=4
+loadAndInterpret: filename='src/programs/Program_3.txt', arrival_time=4
+loadAndInterpret: fileContent length=109
+loadAndInterpret: fileContent length=148
+loadAndInterpret: created process PID=1
+loadAndInterpret: CountLines returned 8
+parseInstructionsIntoMemory: loading program for PID 1
+parseInstructionsIntoMemory: rawData length=148
+parseInstructionsIntoMemory: processing line 0: 'semWait userInput'
+parseLineToOpcode: parsing line: 'semWait userInput'
+parseLineToOpcode: token_count=2
+parseLineToOpcode: instruction_name='semWait'
+parseLineToOpcode: matched opcode='000'
+parseLineToOpcode: final opcode='000'
+parseLineToOpcode: result='000*userInput'
+parseInstructionsIntoMemory: parsed instruction: '000*userInput'
+parseInstructionsIntoMemory: stored at index 0
+parseInstructionsIntoMemory: next line: 'assign a input'
+parseInstructionsIntoMemory: processing line 1: 'assign a input'
+parseLineToOpcode: parsing line: 'assign a input'
+parseLineToOpcode: token_count=3
+parseLineToOpcode: instruction_name='assign'
+parseLineToOpcode: matched opcode='010'
+parseLineToOpcode: final opcode='010'
+parseLineToOpcode: result='010*a*input'
+parseInstructionsIntoMemory: parsed instruction: '010*a*input'
+parseInstructionsIntoMemory: stored at index 1
+parseInstructionsIntoMemory: next line: 'semSignal userInput'
+parseInstructionsIntoMemory: processing line 2: 'semSignal userInput'
+loadAndInterpret: created process PID=2
+loadAndInterpret: CountLines returned 6
+parseInstructionsIntoMemory: loading program for PID 2
+parseInstructionsIntoMemory: rawData length=109
+parseInstructionsIntoMemory: processing line 0: 'semWait userInput'
+parseLineToOpcode: parsing line: 'semWait userInput'
+parseLineToOpcode: token_count=2
+parseLineToOpcode: instruction_name='semWait'
+parseLineToOpcode: matched opcode='000'
+parseLineToOpcode: final opcode='000'
+parseLineToOpcode: result='000*userInput'
+parseInstructionsIntoMemory: parsed instruction: '000*userInput'
+parseInstructionsIntoMemory: stored at index 0
+parseInstructionsIntoMemory: next line: 'assign a input'
+parseInstructionsIntoMemory: processing line 1: 'assign a input'
+parseLineToOpcode: parsing line: 'assign a input'
+parseLineToOpcode: token_count=3
+parseLineToOpcode: instruction_name='assign'
+parseLineToOpcode: matched opcode='010'
+parseLineToOpcode: final opcode='010'
+parseLineToOpcode: result='010*a*input'
+parseInstructionsIntoMemory: parsed instruction: '010*a*input'
+parseInstructionsIntoMemory: stored at index 1
+parseInstructionsIntoMemory: next line: 'assign b input'
+parseInstructionsIntoMemory: processing line 2: 'assign b input'
+parseLineToOpcode: parsing line: 'assign b input'
+parseLineToOpcode: parsing line: 'semSignal userInput'
+parseLineToOpcode: token_count=2
+parseLineToOpcode: instruction_name='semSignal'
+parseLineToOpcode: matched opcode='001'
+parseLineToOpcode: final opcode='001'
+parseLineToOpcode: result='001*userInput'
+parseInstructionsIntoMemory: parsed instruction: '001*userInput'
+parseInstructionsIntoMemory: stored at index 2
+parseInstructionsIntoMemory: next line: 'semWait file'
+parseInstructionsIntoMemory: processing line 3: 'semWait file'
+parseLineToOpcode: parsing line: 'semWait file'
+parseLineToOpcode: token_count=2
+parseLineToOpcode: instruction_name='semWait'
+parseLineToOpcode: matched opcode='000'
+parseLineToOpcode: final opcode='000'
+parseLineToOpcode: result='000*file'
+parseInstructionsIntoMemory: parsed instruction: '000*file'
+parseInstructionsIntoMemory: stored at index 3
+parseLineToOpcode: token_count=3
+parseLineToOpcode: instruction_name='assign'
+parseLineToOpcode: matched opcode='010'
+parseLineToOpcode: final opcode='010'
+parseLineToOpcode: result='010*b*input'
+parseInstructionsIntoMemory: parsed instruction: '010*b*input'
+parseInstructionsIntoMemory: stored at index 2
+parseInstructionsIntoMemory: next line: 'semSignal userInput'
+parseInstructionsIntoMemory: processing line 3: 'semSignal userInput'
+parseLineToOpcode: parsing line: 'semSignal userInput'
+parseLineToOpcode: token_count=2
+parseLineToOpcode: instruction_name='semSignal'
+parseLineToOpcode: matched opcode='001'
+parseLineToOpcode: final opcode='001'
+parseLineToOpcode: result='001*userInput'
+parseInstructionsIntoMemory: parsed instruction: '001*userInput'
+parseInstructionsIntoMemory: stored at index 3
+parseInstructionsIntoMemory: next line: 'semWait file'
+parseInstructionsIntoMemory: processing line 4: 'semWait file'
+parseLineToOpcode: parsing line: 'semWait file'
+parseLineToOpcode: token_count=2
+parseLineToOpcode: instruction_name='semWait'
+parseLineToOpcode: matched opcode='000'
+parseLineToOpcode: final opcode='000'
+parseLineToOpcode: result='000*file'
+parseInstructionsIntoMemory: parsed instruction: '000*file'
+parseInstructionsIntoMemory: next line: 'assign b readFile a'
+parseInstructionsIntoMemory: processing line 4: 'assign b readFile a'
+parseLineToOpcode: parsing line: 'assign b readFile a'
+parseLineToOpcode: token_count=4
+parseLineToOpcode: instruction_name='assign'
+parseLineToOpcode: matched opcode='010'
+parseLineToOpcode: final opcode='010'
+parseLineToOpcode: converted token 'readFile' to opcode '110'
+parseLineToOpcode: result='010*b*110*a'
+parseInstructionsIntoMemory: parsed instruction: '010*b*110*a'
+parseInstructionsIntoMemory: stored at index 4
+parseInstructionsIntoMemory: next line: 'semSignal file'
+parseInstructionsIntoMemory: processing line 5: 'semSignal file'
+parseLineToOpcode: parsing line: 'semSignal file'
+parseLineToOpcode: token_count=2
+parseLineToOpcode: instruction_name='semSignal'
+parseLineToOpcode: matched opcode='001'
+parseLineToOpcode: final opcode='001'
+parseInstructionsIntoMemory: stored at index 4
+parseInstructionsIntoMemory: next line: 'writeFile a b'
+parseInstructionsIntoMemory: processing line 5: 'writeFile a b'
+parseLineToOpcode: parsing line: 'writeFile a b'
+parseLineToOpcode: token_count=3
+parseLineToOpcode: instruction_name='writeFile'
+parseLineToOpcode: matched opcode='101'
+parseLineToOpcode: final opcode='101'
+parseLineToOpcode: result='101*a*b'
+parseInstructionsIntoMemory: parsed instruction: '101*a*b'
+parseInstructionsIntoMemory: stored at index 5
+parseInstructionsIntoMemory: next line: 'semSignal file'
+parseInstructionsIntoMemory: processing line 6: 'semSignal file'
+parseLineToOpcode: parsing line: 'semSignal file'
+parseLineToOpcode: token_count=2
+parseLineToOpcode: instruction_name='semSignal'
+parseLineToOpcode: matched opcode='001'
+parseLineToOpcode: final opcode='001'
+parseLineToOpcode: result='001*file'
+parseInstructionsIntoMemory: parsed instruction: '001*file'
+parseInstructionsIntoMemory: stored at index 6
+parseInstructionsIntoMemory: next line: 'NULL'
+parseInstructionsIntoMemory: total code_line_count=7
+allocate_memory: PID=2, code_line_count=7
+allocate_memory: num_words=14
+allocate_memory: start_index=0
+allocate_memory: setting mem[7] to CODE_LINE, code='000*userInput'
+allocate_memory: setting mem[8] to CODE_LINE, code='010*a*input'
+allocate_memory: setting mem[9] to CODE_LINE, code='010*b*input'
+allocate_memory: setting mem[10] to CODE_LINE, code='001*userInput'
+allocate_memory: setting mem[11] to CODE_LINE, code='000*file'
+allocate_memory: setting mem[12] to CODE_LINE, code='101*a*b'
+parseLineToOpcode: result='001*file'
+parseInstructionsIntoMemory: parsed instruction: '001*file'
+parseInstructionsIntoMemory: stored at index 5
+parseInstructionsIntoMemory: next line: 'semWait userOutput'
+parseInstructionsIntoMemory: processing line 6: 'semWait userOutput'
+parseLineToOpcode: parsing line: 'semWait userOutput'
+parseLineToOpcode: token_count=2
+parseLineToOpcode: instruction_name='semWait'
+parseLineToOpcode: matched opcode='000'
+parseLineToOpcode: final opcode='000'
+parseLineToOpcode: result='000*userOutput'
+allocate_memory: setting mem[13] to CODE_LINE, code='001*file'
+allocate_memory: set PC to 7
+allocate_memory: memory_bounds [0, 13]
+parseInstructionsIntoMemory: after allocate_memory, PC=7
+loadAndInterpret: done
+parseInstructionsIntoMemory: parsed instruction: '000*userOutput'
+parseInstructionsIntoMemory: stored at index 6
+parseInstructionsIntoMemory: next line: 'print b'
+parseInstructionsIntoMemory: processing line 7: 'print b'
+parseLineToOpcode: parsing line: 'print b'
+parseLineToOpcode: token_count=2
+parseLineToOpcode: instruction_name='print'
+parseLineToOpcode: matched opcode='011'
+parseLineToOpcode: final opcode='011'
+parseLineToOpcode: result='011*b'
+parseInstructionsIntoMemory: parsed instruction: '011*b'
+parseInstructionsIntoMemory: stored at index 7
+parseInstructionsIntoMemory: next line: 'semSignal userOutput'
+parseInstructionsIntoMemory: processing line 8: 'semSignal userOutput'
+parseLineToOpcode: parsing line: 'semSignal userOutput'
+parseLineToOpcode: token_count=2
+parseLineToOpcode: instruction_name='semSignal'
+parseLineToOpcode: matched opcode='001'
+parseLineToOpcode: final opcode='001'
+parseLineToOpcode: result='001*userOutput'
+parseInstructionsIntoMemory: parsed instruction: '001*userOutput'
+parseInstructionsIntoMemory: stored at index 8
+parseInstructionsIntoMemory: next line: 'NULL'
+parseInstructionsIntoMemory: total code_line_count=9
+allocate_memory: PID=1, code_line_count=9
+allocate_memory: num_words=16
+allocate_memory: start_index=14
+allocate_memory: setting mem[21] to CODE_LINE, code='000*userInput'
+allocate_memory: setting mem[22] to CODE_LINE, code='010*a*input'
+allocate_memory: setting mem[23] to CODE_LINE, code='001*userInput'
+allocate_memory: setting mem[24] to CODE_LINE, code='000*file'
+allocate_memory: setting mem[25] to CODE_LINE, code='010*b*110*a'
+allocate_memory: setting mem[26] to CODE_LINE, code='001*file'
+allocate_memory: setting mem[27] to CODE_LINE, code='000*userOutput'
+allocate_memory: setting mem[28] to CODE_LINE, code='011*b'
+allocate_memory: setting mem[29] to CODE_LINE, code='001*userOutput'
+allocate_memory: set PC to 21
+allocate_memory: memory_bounds [14, 29]
+parseInstructionsIntoMemory: after allocate_memory, PC=21
+loadAndInterpret: done
+loadAndInterpret: fileContent length=123
+loadAndInterpret: created process PID=3
+loadAndInterpret: CountLines returned 6
+parseInstructionsIntoMemory: loading program for PID 3
+parseInstructionsIntoMemory: rawData length=123
+parseInstructionsIntoMemory: processing line 0: 'semWait userInput'
+parseLineToOpcode: parsing line: 'semWait userInput'
+parseLineToOpcode: token_count=2
+parseLineToOpcode: instruction_name='semWait'
+parseLineToOpcode: matched opcode='000'
+parseLineToOpcode: final opcode='000'
+parseLineToOpcode: result='000*userInput'
+parseInstructionsIntoMemory: parsed instruction: '000*userInput'
+parseInstructionsIntoMemory: stored at index 0
+parseInstructionsIntoMemory: next line: 'assign x input'
+parseInstructionsIntoMemory: processing line 1: 'assign x input'
+parseLineToOpcode: parsing line: 'assign x input'
+parseLineToOpcode: token_count=3
+parseLineToOpcode: instruction_name='assign'
+parseLineToOpcode: matched opcode='010'
+parseLineToOpcode: final opcode='010'
+parseLineToOpcode: result='010*x*input'
+parseInstructionsIntoMemory: parsed instruction: '010*x*input'
+parseInstructionsIntoMemory: stored at index 1
+parseInstructionsIntoMemory: next line: 'assign y input'
+parseInstructionsIntoMemory: processing line 2: 'assign y input'
+parseLineToOpcode: parsing line: 'assign y input'
+parseLineToOpcode: token_count=3
+parseLineToOpcode: instruction_name='assign'
+parseLineToOpcode: matched opcode='010'
+parseLineToOpcode: final opcode='010'
+parseLineToOpcode: result='010*y*input'
+parseInstructionsIntoMemory: parsed instruction: '010*y*input'
+parseInstructionsIntoMemory: stored at index 2
+parseInstructionsIntoMemory: next line: 'semSignal userInput'
+parseInstructionsIntoMemory: processing line 3: 'semSignal userInput'
+parseLineToOpcode: parsing line: 'semSignal userInput'
+parseLineToOpcode: token_count=2
+parseLineToOpcode: instruction_name='semSignal'
+parseLineToOpcode: matched opcode='001'
+parseLineToOpcode: final opcode='001'
+parseLineToOpcode: result='001*userInput'
+parseInstructionsIntoMemory: parsed instruction: '001*userInput'
+parseInstructionsIntoMemory: stored at index 3
+parseInstructionsIntoMemory: next line: 'semWait userOutput'
+parseInstructionsIntoMemory: processing line 4: 'semWait userOutput'
+parseLineToOpcode: parsing line: 'semWait userOutput'
+parseLineToOpcode: token_count=2
+parseLineToOpcode: instruction_name='semWait'
+parseLineToOpcode: matched opcode='000'
+parseLineToOpcode: final opcode='000'
+parseLineToOpcode: result='000*userOutput'
+parseInstructionsIntoMemory: parsed instruction: '000*userOutput'
+parseInstructionsIntoMemory: stored at index 4
+parseInstructionsIntoMemory: next line: 'printFromTo x y'
+parseInstructionsIntoMemory: processing line 5: 'printFromTo x y'
+parseLineToOpcode: parsing line: 'printFromTo x y'
+parseLineToOpcode: token_count=3
+parseLineToOpcode: instruction_name='printFromTo'
+parseLineToOpcode: matched opcode='100'
+parseLineToOpcode: final opcode='100'
+parseLineToOpcode: result='100*x*y'
+parseInstructionsIntoMemory: parsed instruction: '100*x*y'
+parseInstructionsIntoMemory: stored at index 5
+parseInstructionsIntoMemory: next line: 'semSignal userOutput'
+parseInstructionsIntoMemory: processing line 6: 'semSignal userOutput'
+parseLineToOpcode: parsing line: 'semSignal userOutput'
+parseLineToOpcode: token_count=2
+parseLineToOpcode: instruction_name='semSignal'
+parseLineToOpcode: matched opcode='001'
+parseLineToOpcode: final opcode='001'
+parseLineToOpcode: result='001*userOutput'
+parseInstructionsIntoMemory: parsed instruction: '001*userOutput'
+parseInstructionsIntoMemory: stored at index 6
+parseInstructionsIntoMemory: next line: 'NULL'
+parseInstructionsIntoMemory: total code_line_count=7
+allocate_memory: PID=3, code_line_count=7
+allocate_memory: num_words=14
+SWAPPED
+allocate_memory: start_index=0
+allocate_memory: setting mem[7] to CODE_LINE, code='000*userInput'
+allocate_memory: setting mem[8] to CODE_LINE, code='010*x*input'
+allocate_memory: setting mem[9] to CODE_LINE, code='010*y*input'
+allocate_memory: setting mem[10] to CODE_LINE, code='001*userInput'
+allocate_memory: setting mem[11] to CODE_LINE, code='000*userOutput'
+allocate_memory: setting mem[12] to CODE_LINE, code='100*x*y'
+allocate_memory: setting mem[13] to CODE_LINE, code='001*userOutput'
+allocate_memory: set PC to 7
+allocate_memory: memory_bounds [0, 13]
+parseInstructionsIntoMemory: after allocate_memory, PC=7
+loadAndInterpret: done
+Executing Multi-Level Feedback Queue Algorithm
+--- SYSTEM QUEUE STATUS ---
+Ready Queue: []
+Blocked Queue: []
+MLFQ Queue 0: [P2, P1, P3]
+MLFQ Queue 1: []
+MLFQ Queue 2: []
+MLFQ Queue 3: []
+MLFQ: Selected P2 from Queue 0 (Quantum: 1)
+Running P2 | Instruction 1/1
+Exec: PID 2
+Exec: PC 7
+read_code_line: pc=7
+read_code_line: mem[7].isFree=0, type=1
+read_code_line: returning '000*userInput'
+Exec: Instr '000*userInput'
+Exec: Parts
+Exec: Part[0] 'userInput'
+Exec: Part[1] '000'
+SemWait: PID 2, Res 0
+USER_INPUT is now occupied
+SemWait done
+Exec: Update PC
+Exec: Free parts
+Exec: Done
+P2 used full quantum. Moving to Queue 1.
+
+--- SYSTEM QUEUE STATUS ---
+Ready Queue: []
+Blocked Queue: []
+MLFQ Queue 0: [P1, P3]
+MLFQ Queue 1: [P2]
+MLFQ Queue 2: []
+MLFQ Queue 3: []
+Tick=1 Running=-1 Ready=0 Blocked=0
+Executing Multi-Level Feedback Queue Algorithm
+--- SYSTEM QUEUE STATUS ---
+Ready Queue: []
+Blocked Queue: []
+MLFQ Queue 0: [P1, P3]
+MLFQ Queue 1: [P2]
+MLFQ Queue 2: []
+MLFQ Queue 3: []
+MLFQ: Selected P1 from Queue 0 (Quantum: 1)
+Running P1 | Instruction 1/1
+Exec: PID 1
+Exec: PC 21
+read_code_line: pc=21
+read_code_line: mem[21].isFree=0, type=1
+read_code_line: returning '000*userInput'
+Exec: Instr '000*userInput'
+Exec: Parts
+Exec: Part[0] 'userInput'
+Exec: Part[1] '000'
+SemWait: PID 1, Res 0
+Process (pid = 1) is enqueued in the general blocked queue.
+Process (pid = 1) is enqueued in the USER_INPUT blocked queue.
+SemWait done
+Exec: Update PC
+Exec: Free parts
+Exec: Done
+Process 1 is blocked
+
+--- SYSTEM QUEUE STATUS ---
+Ready Queue: []
+Blocked Queue: [P1]
+MLFQ Queue 0: [P3]
+MLFQ Queue 1: [P2]
+MLFQ Queue 2: []
+MLFQ Queue 3: []
+Tick=2 Running=-1 Ready=0 Blocked=1
+Executing Multi-Level Feedback Queue Algorithm
+--- SYSTEM QUEUE STATUS ---
+Ready Queue: []
+Blocked Queue: [P1]
+MLFQ Queue 0: [P3]
+MLFQ Queue 1: [P2]
+MLFQ Queue 2: []
+MLFQ Queue 3: []
+MLFQ: Selected P3 from Queue 0 (Quantum: 1)
+Running P3 | Instruction 1/1
+Exec: PID 3
+Exec: PC 7
+read_code_line: pc=7
+read_code_line: mem[7].isFree=0, type=1
+read_code_line: returning '000*userInput'
+Exec: Instr '000*userInput'
+Exec: Parts
+Exec: Part[0] 'userInput'
+Exec: Part[1] '000'
+SemWait: PID 3, Res 0
+Process (pid = 3) is enqueued in the general blocked queue.
+Process (pid = 3) is enqueued in the USER_INPUT blocked queue.
+SemWait done
+Exec: Update PC
+Exec: Free parts
+Exec: Done
+Process 3 is blocked
+
+--- SYSTEM QUEUE STATUS ---
+Ready Queue: []
+Blocked Queue: [P1, P3]
+MLFQ Queue 0: []
+MLFQ Queue 1: [P2]
+MLFQ Queue 2: []
+MLFQ Queue 3: []
+Tick=3 Running=-1 Ready=0 Blocked=2
+Executing Multi-Level Feedback Queue Algorithm
+--- SYSTEM QUEUE STATUS ---
+Ready Queue: []
+Blocked Queue: [P1, P3]
+MLFQ Queue 0: []
+MLFQ Queue 1: [P2]
+MLFQ Queue 2: []
+MLFQ Queue 3: []
+MLFQ: Selected P2 from Queue 1 (Quantum: 2)
+Running P2 | Instruction 1/2
+Exec: PID 2
+Exec: PC 8
+read_code_line: pc=8
+read_code_line: mem[8].isFree=0, type=1
+read_code_line: returning '010*x*input'
+Exec: Instr '010*x*input'
+Exec: Parts
+Exec: Part[0] 'input'
+TakeInput
+Enter input: Input: 10
+Exec: Part[1] 'x'
+Exec: Part[2] '010'
+Assign: PID 2, x = 10
+Variable x with value 10 written to memory for process id 2
+Assign done
+Exec: Update PC
+Exec: Free parts
+Exec: Done
+Running P2 | Instruction 2/2
+Exec: PID 2
+Exec: PC 9
+read_code_line: pc=9
+read_code_line: mem[9].isFree=0, type=1
+read_code_line: returning '010*y*input'
+Exec: Instr '010*y*input'
+Exec: Parts
+Exec: Part[0] 'input'
+TakeInput
+Enter input: Input: 20
+Exec: Part[1] 'y'
+Exec: Part[2] '010'
+Assign: PID 2, y = 20
+Variable y with value 20 written to memory for process id 2
+Assign done
+Exec: Update PC
+Exec: Free parts
+Exec: Done
+P2 used full quantum. Moving to Queue 2.
+
+--- SYSTEM QUEUE STATUS ---
+Ready Queue: []
+Blocked Queue: [P1, P3]
+MLFQ Queue 0: []
+MLFQ Queue 1: []
+MLFQ Queue 2: [P2]
+MLFQ Queue 3: []
+Tick=4 Running=-1 Ready=0 Blocked=2
+Executing Multi-Level Feedback Queue Algorithm
+--- SYSTEM QUEUE STATUS ---
+Ready Queue: []
+Blocked Queue: [P1, P3]
+MLFQ Queue 0: []
+MLFQ Queue 1: []
+MLFQ Queue 2: [P2]
+MLFQ Queue 3: []
+MLFQ: Selected P2 from Queue 2 (Quantum: 4)
+Running P2 | Instruction 1/4
+Exec: PID 2
+Exec: PC 10
+read_code_line: pc=10
+read_code_line: mem[10].isFree=0, type=1
+read_code_line: returning '001*userInput'
+Exec: Instr '001*userInput'
+Exec: Parts
+Exec: Part[0] 'userInput'
+Exec: Part[1] '001'
+SemSignal: Res 0
+Next Process (pid = 1) is dequeued from the USER_INPUT blocked queue.
+Next Process (pid = 1) is dequeued from the general blocked queue.
+Next Process (pid = 1) is READY
+Next Process (pid = 1) is enqueued in MLFQ Queue 0.
+SemSignal done
+Exec: Update PC
+Exec: Free parts
+Exec: Done
+Running P2 | Instruction 2/4
+Exec: PID 2
+Exec: PC 11
+read_code_line: pc=11
+read_code_line: mem[11].isFree=0, type=1
+read_code_line: returning '000*userOutput'
+Exec: Instr '000*userOutput'
+Exec: Parts
+Exec: Part[0] 'userOutput'
+Exec: Part[1] '000'
+SemWait: PID 2, Res 1
+USER_OUTPUT is now occupied
+SemWait done
+Exec: Update PC
+Exec: Free parts
+Exec: Done
+Running P2 | Instruction 3/4
+Exec: PID 2
+Exec: PC 12
+read_code_line: pc=12
+read_code_line: mem[12].isFree=0, type=1
+read_code_line: returning '100*x*y'
+Exec: Instr '100*x*y'
+Exec: Parts
+Exec: Part[0] 'y'
+Exec: Part[1] 'x'
+Exec: Part[2] '100'
+Variable x not found in memory for process id 2
+Variable y not found in memory for process id 2
+Exec: printFromTo from_var='x' from_val='NULL', to_var='y' to_val='NULL'
+Exec: printFromTo from=0, to=0
+PrintFromTo: 0 to 0
+Printed value: 0 
+PrintFromTo done
+Exec: Update PC
+Exec: Free parts
+Exec: Done
+Running P2 | Instruction 4/4
+Exec: PID 2
+Exec: PC 13
+read_code_line: pc=13
+read_code_line: mem[13].isFree=0, type=1
+read_code_line: returning '001*userOutput'
+Exec: Instr '001*userOutput'
+Exec: Parts
+Exec: Part[0] 'userOutput'
+Exec: Part[1] '001'
+SemSignal: Res 1
+USER_OUTPUT is now available
+SemSignal done
+Exec: Update PC
+Exec: Free parts
+Exec: Done
+P2 used full quantum. Moving to Queue 3.
+
+--- SYSTEM QUEUE STATUS ---
+Ready Queue: []
+Blocked Queue: [P3]
+MLFQ Queue 0: [P1]
+MLFQ Queue 1: []
+MLFQ Queue 2: []
+MLFQ Queue 3: [P2]
+Tick=5 Running=-1 Ready=0 Blocked=1
+Executing Multi-Level Feedback Queue Algorithm
+--- SYSTEM QUEUE STATUS ---
+Ready Queue: []
+Blocked Queue: [P3]
+MLFQ Queue 0: [P1]
+MLFQ Queue 1: []
+MLFQ Queue 2: []
+MLFQ Queue 3: [P2]
+MLFQ: Selected P1 from Queue 0 (Quantum: 1)
+Running P1 | Instruction 1/1
+Exec: PID 1
+Exec: PC 22
+read_code_line: pc=22
+read_code_line: mem[22].isFree=0, type=1
+read_code_line: returning '010*a*input'
+Exec: Instr '010*a*input'
+Exec: Parts
+Exec: Part[0] 'input'
+TakeInput
+Enter input: Input: alo
+Exec: Part[1] 'a'
+Exec: Part[2] '010'
+Assign: PID 1, a = alo
+Variable a with value alo written to memory for process id 1
+Assign done
+Exec: Update PC
+Exec: Free parts
+Exec: Done
+P1 used full quantum. Moving to Queue 1.
+
+--- SYSTEM QUEUE STATUS ---
+Ready Queue: []
+Blocked Queue: [P3]
+MLFQ Queue 0: []
+MLFQ Queue 1: [P1]
+MLFQ Queue 2: []
+MLFQ Queue 3: [P2]
+Tick=6 Running=-1 Ready=0 Blocked=1
+Executing Multi-Level Feedback Queue Algorithm
+--- SYSTEM QUEUE STATUS ---
+Ready Queue: []
+Blocked Queue: [P3]
+MLFQ Queue 0: []
+MLFQ Queue 1: [P1]
+MLFQ Queue 2: []
+MLFQ Queue 3: [P2]
+MLFQ: Selected P1 from Queue 1 (Quantum: 2)
+Running P1 | Instruction 1/2
+Exec: PID 1
+Exec: PC 23
+read_code_line: pc=23
+read_code_line: mem[23].isFree=0, type=1
+read_code_line: returning '001*userInput'
+Exec: Instr '001*userInput'
+Exec: Parts
+Exec: Part[0] 'userInput'
+Exec: Part[1] '001'
+SemSignal: Res 0
+Next Process (pid = 3) is dequeued from the USER_INPUT blocked queue.
+Next Process (pid = 3) is dequeued from the general blocked queue.
+Next Process (pid = 3) is READY
+Next Process (pid = 3) is enqueued in MLFQ Queue 0.
+SemSignal done
+Exec: Update PC
+Exec: Free parts
+Exec: Done
+Running P1 | Instruction 2/2
+Exec: PID 1
+Exec: PC 24
+read_code_line: pc=24
+read_code_line: mem[24].isFree=0, type=1
+read_code_line: returning '000*file'
+Exec: Instr '000*file'
+Exec: Parts
+Exec: Part[0] 'file'
+Exec: Part[1] '000'
+SemWait: PID 1, Res 2
+FILE_RESOURCE is now occupied
+SemWait done
+Exec: Update PC
+Exec: Free parts
+Exec: Done
+P1 used full quantum. Moving to Queue 2.
+
+--- SYSTEM QUEUE STATUS ---
+Ready Queue: []
+Blocked Queue: []
+MLFQ Queue 0: [P3]
+MLFQ Queue 1: []
+MLFQ Queue 2: [P1]
+MLFQ Queue 3: [P2]
+Tick=7 Running=-1 Ready=0 Blocked=0
+Executing Multi-Level Feedback Queue Algorithm
+--- SYSTEM QUEUE STATUS ---
+Ready Queue: []
+Blocked Queue: []
+MLFQ Queue 0: [P3]
+MLFQ Queue 1: []
+MLFQ Queue 2: [P1]
+MLFQ Queue 3: [P2]
+MLFQ: Selected P3 from Queue 0 (Quantum: 1)
+Running P3 | Instruction 1/1
+Exec: PID 3
+Exec: PC 8
+read_code_line: pc=8
+read_code_line: mem[8].isFree=0, type=1
+read_code_line: returning '010*x*input'
+Exec: Instr '010*x*input'
+Exec: Parts
+Exec: Part[0] 'input'
+TakeInput
+Enter input: Input: 
+Exec: Part[1] 'x'
+Exec: Part[2] '010'
+Assign: PID 3, x = 
+Variable x with value  written to memory for process id 3
+Assign done
+Exec: Update PC
+Exec: Free parts
+Exec: Done
+P3 used full quantum. Moving to Queue 1.
+
+--- SYSTEM QUEUE STATUS ---
+Ready Queue: []
+Blocked Queue: []
+MLFQ Queue 0: []
+MLFQ Queue 1: [P3]
+MLFQ Queue 2: [P1]
+MLFQ Queue 3: [P2]
+Tick=8 Running=-1 Ready=0 Blocked=0
+Executing Multi-Level Feedback Queue Algorithm
+--- SYSTEM QUEUE STATUS ---
+Ready Queue: []
+Blocked Queue: []
+MLFQ Queue 0: []
+MLFQ Queue 1: [P3]
+MLFQ Queue 2: [P1]
+MLFQ Queue 3: [P2]
+MLFQ: Selected P3 from Queue 1 (Quantum: 2)
+Running P3 | Instruction 1/2
+Exec: PID 3
+Exec: PC 9
+read_code_line: pc=9
+read_code_line: mem[9].isFree=0, type=1
+read_code_line: returning '010*y*input'
+Exec: Instr '010*y*input'
+Exec: Parts
+Exec: Part[0] 'input'
+TakeInput
+Enter input: Input: 
+Exec: Part[1] 'y'
+Exec: Part[2] '010'
+Assign: PID 3, y = 
+Variable y with value  written to memory for process id 3
+Assign done
+Exec: Update PC
+Exec: Free parts
+Exec: Done
+Running P3 | Instruction 2/2
+Exec: PID 3
+Exec: PC 10
+read_code_line: pc=10
+read_code_line: mem[10].isFree=0, type=1
+read_code_line: returning '001*userInput'
+Exec: Instr '001*userInput'
+Exec: Parts
+Exec: Part[0] 'userInput'
+Exec: Part[1] '001'
+SemSignal: Res 0
+USER_INPUT is now available
+SemSignal done
+Exec: Update PC
+Exec: Free parts
+Exec: Done
+P3 used full quantum. Moving to Queue 2.
+
+--- SYSTEM QUEUE STATUS ---
+Ready Queue: []
+Blocked Queue: []
+MLFQ Queue 0: []
+MLFQ Queue 1: []
+MLFQ Queue 2: [P1, P3]
+MLFQ Queue 3: [P2]
+Tick=9 Running=-1 Ready=0 Blocked=0
+Executing Multi-Level Feedback Queue Algorithm
+--- SYSTEM QUEUE STATUS ---
+Ready Queue: []
+Blocked Queue: []
+MLFQ Queue 0: []
+MLFQ Queue 1: []
+MLFQ Queue 2: [P1, P3]
+MLFQ Queue 3: [P2]
+MLFQ: Selected P1 from Queue 2 (Quantum: 4)
+Running P1 | Instruction 1/4
+Exec: PID 1
+Exec: PC 25
+read_code_line: pc=25
+read_code_line: mem[25].isFree=0, type=1
+read_code_line: returning '010*b*110*a'
+Exec: Instr '010*b*110*a'
+Exec: Parts
+Exec: Part[0] 'a'
+Exec: Part[1] '110'
+ReadFile: a
+Variable a found in memory for process id 1 with value: alo
+ReadFile: got alo
+Exec: Part[2] 'b'
+Exec: Part[3] '010'
+Assign: PID 1, b = alo
+Variable b with value alo written to memory for process id 1
+Assign done
+Exec: Update PC
+Exec: Free parts
