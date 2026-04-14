@@ -7,7 +7,8 @@
 
 Process* execute_round_robin() {
     printf("Executing Round Robin Algorithm");
-    
+    print_all_queues();
+
     if (os_ready_queue.head == NULL) {
         printf("Scheduler: no proccesses in the ready queue\n");
         return NULL; // No processes ready to run
@@ -24,10 +25,10 @@ Process* execute_round_robin() {
 
         printf("Running Process %d | Instruction %d (PC: %d)\n", current_process->pcb->pid, i + 1, current_process->pcb->pc);
 
-        execute_instruction(current_process); //check with heba eh esm el instruction
+        execute_instruction(current_process); 
         if (current_process->pcb->state == FINISHED){
             printf("process %d has finished.\n", current_process->pcb->pid);
-             update_state_in_memory(current_process->pcb->pid, FINISHED);
+            update_state_in_memory(current_process->pcb->pid, FINISHED);
             print_all_queues();
             return current_process;
         }    

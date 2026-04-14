@@ -2,7 +2,7 @@
 #include "mutex.h"
 #include "../scheduler/queue.h"
 #include "../scheduler/scheduler.h"
-
+#include "../os/os_core.h"
 int binSem [3]= {1,1,1};
 Queue blockedQueues[3];
 
@@ -99,7 +99,8 @@ void semSignal(enum RESOURCE r){
         int found=0;
         int count=0;
         while (!is_empty(&general_blocked_queue) && !found && count<general_blocked_queue.size){ //to avoid infinite loops
-            Process* val=dequeue(&general_blocked_queue);
+            
+Process* val=dequeue(&general_blocked_queue);
 
             if (val==nextProcess){
                 found=1;
@@ -110,9 +111,18 @@ void semSignal(enum RESOURCE r){
             count++;
         }
         nextProcess->pcb->state = READY;
+        nextProcess->ready_since=os_get_clock();
         printf("Next Process (pid = %d) is %s\n", nextProcess->pcb->pid, state_name(nextProcess->pcb->state));
-        enqueue(nextProcess, &os_ready_queue);
-        printf("Next Process (pid = %d) is enqueued in the general ready queue.\n", nextProcess->pcb->pid);
+        
+        // Enqueue to appropriate queue based on scheduler algorithm
+        SchedulerAlgorithm algo = get_current_algo();
+        if (algo == MLFQ) {
+            enqueue(nextProcess, &mlfq_queues[0]);  // Re-enter at highest priority
+            printf("Next Process (pid = %d) is enqueued in MLFQ Queue 0.\n", nextProcess->pcb->pid);
+        } else {
+            enqueue(nextProcess, &os_ready_queue);
+            printf("Next Process (pid = %d) is enqueued in the general ready queue.\n", nextProcess->pcb->pid);
+        }
         binSem[r] = 0;
     }
 }
@@ -167,4 +177,3 @@ void semSignal(enum RESOURCE r){
 
 // Queue blockedQueue;
 // Queue readyQueue;
-

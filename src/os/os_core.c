@@ -55,18 +55,25 @@ int os_is_running(void) {
 
 int os_step(void) {
 	Process *scheduled = NULL;
+	int had_running_before_step = 0;
 
 	if (!g_is_initialized) {
 		return -1;
 	}
 
+	had_running_before_step = (g_running_process != NULL);
+
 	scheduled = schedule_next_process(g_algorithm);
 	g_running_process = scheduled;
 
-	// Every scheduler dispatch is one simulation cycle.
-	g_clock_tick++;
+    // Advance clock only when an instruction cycle made progress.
+    // This includes a scheduler return value, or a running process that executed
+    // and then blocked in the same step (returns NULL in HRRN).
+	if (scheduled != NULL || had_running_before_step) {
+		g_clock_tick++;
+	}
 
-	if (g_running_process != NULL && g_running_process->pcb != NULL && g_running_process->pcb->state == FINISHED) {
+	if (g_running_process != NULL && g_running_process->pcb != NULL && g_running_process->pcb->state != RUNNING) {
 		g_running_process = NULL;
 	}
 
