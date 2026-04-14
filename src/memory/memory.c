@@ -121,7 +121,6 @@ static int allocate_block(int pid, int num_words){
             count = 0;
         }
     }
-
     // check first process with num_words >=
     for (int i = 0; i < map_i; i++){
         if (memory_map[i].word_count >= num_words){
@@ -135,7 +134,6 @@ static int allocate_block(int pid, int num_words){
             return index;
         }
     }
-
     // edge case: if last process + remaining empty space in memory can fit process
     // condition checks en el process mesh atwal mn el memory
     if (map_i > 0){
@@ -331,6 +329,7 @@ void swap_out(int pid, int word_count){
 
     fclose(file);
     free_process_memory(pid);
+    printf("SWAPPED\n");
 }
 
 

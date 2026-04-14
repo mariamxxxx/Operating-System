@@ -51,7 +51,8 @@ Process* allocate_memory(int pid, Process *proc);
 
 void update_state_in_memory(int pid, ProcessState state);
 void update_pc_in_memory(int pid, int pc);
-void update_pcb_in_memory(int pid, PCB *pcb);
+// void update_pcb_in_memory(int pid, PCB *pcb);
+
 
 // clears any spot owned by pid, marks it as free
 // called during swap or when process finishes

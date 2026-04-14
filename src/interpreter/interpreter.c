@@ -57,6 +57,25 @@ char** splitAndReverse(const char* str, int* count) {
     free(copy);
     return result;
 }
+static int parse_resource_token(const char *token) {
+    if (token == NULL) {
+        return -1;
+    }
+
+    if (strcmp(token, "0") == 0 || strcmp(token, "userInput") == 0 || strcmp(token, "USER_INPUT") == 0) {
+        return USER_INPUT;
+    }
+
+    if (strcmp(token, "1") == 0 || strcmp(token, "userOutput") == 0 || strcmp(token, "USER_OUTPUT") == 0) {
+        return USER_OUTPUT;
+    }
+
+    if (strcmp(token, "2") == 0 || strcmp(token, "fileResource") == 0 || strcmp(token, "FILE_RESOURCE") == 0) {
+        return FILE_RESOURCE;
+    }
+
+    return -1;
+}
 
 // extern void loadAndInterpret(char* filename) { 
 //     if (filename == NULL) {
@@ -164,7 +183,13 @@ void execute_instruction(Process* process) {
     
         if (strcmp(part, "000") == 0 ){
             if (i>=1){
-                callSemWait(process, atoi(parts[i-1]));
+                // callSemWait(process, atoi(parts[i-1]));
+                int resourceType = parse_resource_token(parts[i-1]);
+                if (resourceType >= 0) {
+                    callSemWait(process, resourceType);
+                } else {
+                    printf("Syntax Error: Invalid resource type '%s' for semWait in instruction %s\n", parts[i-1], instruction);
+                }
             }
             else {
                 printf("Syntax Error: Missing resource type for semWait in instruction %s\n", instruction);
@@ -172,7 +197,13 @@ void execute_instruction(Process* process) {
         }
         if (strcmp(part, "001") == 0 ){
             if (i>=1){
-                callSemSignal(atoi(parts[i-1]));
+                // callSemSignal(atoi(parts[i-1]));
+                int resourceType = parse_resource_token(parts[i-1]);
+                if (resourceType >= 0) {
+                    callSemSignal(resourceType);
+                } else {
+                    printf("Syntax Error: Invalid resource type '%s' for semSignal in instruction %s\n", parts[i-1], instruction);
+                }
             }
             else {
                 printf("Syntax Error: Missing resource type for semSignal in instruction %s\n", instruction);
