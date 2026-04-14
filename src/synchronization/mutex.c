@@ -2,6 +2,7 @@
 #include "mutex.h"
 #include "../scheduler/queue.h"
 #include "../scheduler/scheduler.h"
+#include "../os/os_core.h"
 
 int binSem [3]= {1,1,1};
 Queue blockedQueues[3];
@@ -110,6 +111,7 @@ void semSignal(enum RESOURCE r){
             count++;
         }
         nextProcess->pcb->state = READY;
+        nextProcess->ready_since = os_get_clock();
         printf("Next Process (pid = %d) is %s\n", nextProcess->pcb->pid, state_name(nextProcess->pcb->state));
         enqueue(nextProcess, &os_ready_queue);
         printf("Next Process (pid = %d) is enqueued in the general ready queue.\n", nextProcess->pcb->pid);

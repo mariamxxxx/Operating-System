@@ -133,11 +133,13 @@ Process *execute_hrrn() {
         Process *best = NULL;
         double myrate = -1.0;
         
-        //Calculate ratios for the new selection
+        // Calculate HRRN using total wait in ready queue:
+        // response ratio = (wait + burst) / burst.
         while (node != NULL) {
             Process *p = node->process;
-            
-            int wait = p->wait_time; 
+
+            int wait = p->wait_time + (os_get_clock() - p->ready_since);
+            if (wait < 0) wait = 0;
             int burst = p->code_line_count;
             if (burst < 1) burst = 1; 
             
@@ -154,6 +156,11 @@ Process *execute_hrrn() {
         //Remove the selected process and assign it to the CPU
         remove_from_queue(&os_ready_queue, best);
         current = best;
+
+        // Persist accumulated waiting time up to this dispatch point.
+        current->wait_time += os_get_clock() - current->ready_since;
+        if (current->wait_time < 0) current->wait_time = 0;
+
         current->pcb->state = RUNNING;
         update_state_in_memory(current->pcb->pid, RUNNING);
         printf("HRRN: Selected Process %d (Ratio: %.2f)\n", current->pcb->pid, myrate);
@@ -163,12 +170,6 @@ Process *execute_hrrn() {
     //Execute EXACTLY ONE instruction (Matches 1 OS clock tick)
     printf("Running Process %d | PC: %d\n", current->pcb->pid, current->pcb->pc);
     execute_instruction(current);
-
-    QueueNode *curr = os_ready_queue.head;
-    while(curr != NULL){
-        curr->process->wait_time += 1;
-        curr = curr->next;
-    }
 
     //Handle State Changes
     if (current->pcb->state == FINISHED) {
