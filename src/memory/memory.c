@@ -13,6 +13,8 @@ static void build_swap_path(int pid, char *out, size_t out_size){
     snprintf(out, out_size, "%s/pid_%d.swap", SWAP_DIR, pid);
 }
 
+static void print_swap_file(int pid);
+
 // INDEX
 static MapEntry memory_map[MEMORY_SIZE / 2];
 static int map_i = 0; // tracks the next available index in memory_map
@@ -375,7 +377,7 @@ void print_memory(){
     }
 }
 
-void print_swap_file(int pid){
+static void print_swap_file(int pid){
     char path[MAX_STRING];
     build_swap_path(pid, path, sizeof(path));
 
