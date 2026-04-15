@@ -13,7 +13,7 @@ static void build_swap_path(int pid, char *out, size_t out_size){
     snprintf(out, out_size, "%s/pid_%d.swap", SWAP_DIR, pid);
 }
 
-static void print_swap_file(int pid);
+static void print_swap_file(int pid, const char *action);
 
 // INDEX
 static MapEntry memory_map[MEMORY_SIZE / 2];
@@ -38,6 +38,20 @@ static void delete_memory_map_entry(int pid, int index){
         memory_map[i] = memory_map[i + 1];
     }
     map_i--;
+}
+
+static void insert_memory_map_entry(int pid, int start_index, int word_count, int index){
+    if (map_i >= MEMORY_SIZE / 2 || index < 0 || index > map_i)
+        return;
+
+    for (int i = map_i; i > index; i--){
+        memory_map[i] = memory_map[i - 1];
+    }
+
+    memory_map[index].pid = pid;
+    memory_map[index].start_index = start_index;
+    memory_map[index].word_count = word_count;
+    map_i++;
 }
 
 // TO BE CALLED
@@ -127,12 +141,13 @@ static int allocate_block(int pid, int num_words){
     for (int i = 0; i < map_i; i++){
         if (memory_map[i].word_count >= num_words){
             int index = memory_map[i].start_index;
+            int insert_at = i;
             swap_out(memory_map[i].pid, memory_map[i].word_count);
             for (int j = index; j < index + num_words; j++){
                 mem[j].isFree = 0;
                 mem[j].ownerPid = pid;
             }
-            update_memory_map(pid, num_words, i);
+            insert_memory_map_entry(pid, index, num_words, insert_at);
             return index;
         }
     }
@@ -144,12 +159,13 @@ static int allocate_block(int pid, int num_words){
         int available = memory_map[last].word_count + (MEMORY_SIZE - end_of_last);
         if (available >= num_words){
             int index = memory_map[last].start_index;
+            int insert_at = last;
             swap_out(memory_map[last].pid, memory_map[last].word_count);
             for (int i = index; i < index + num_words; i++){
                 mem[i].isFree = 0;
                 mem[i].ownerPid = pid;
             }
-            update_memory_map(pid, num_words, last);
+            insert_memory_map_entry(pid, index, num_words, insert_at);
             return index;
         }
     }
@@ -306,11 +322,9 @@ void swap_out(int pid, int word_count){
         
     }
 
-    print_swap_file(pid);
-
     fclose(file);
+    print_swap_file(pid, "OUT");
     free_process_memory(pid);
-    printf("SWAPPED\n");
 }
 
 void swap_in(int pid){
@@ -343,6 +357,7 @@ void swap_in(int pid){
     }
 
     fclose(file);
+    print_swap_file(pid, "IN");
     remove(path);
 
     // update stale addresses
@@ -353,8 +368,6 @@ void swap_in(int pid){
     mem[start + 3].payload.memory_boundary[0] = start;
     mem[start + 3].payload.memory_boundary[1] += offset;
 
-    build_memory_map(pid, start, word_count, map_i);
-    print_swap_file(pid);
 }
 
 void print_memory(){
@@ -377,7 +390,7 @@ void print_memory(){
     }
 }
 
-static void print_swap_file(int pid){
+static void print_swap_file(int pid, const char *action){
     char path[MAX_STRING];
     build_swap_path(pid, path, sizeof(path));
 
@@ -394,7 +407,7 @@ static void print_swap_file(int pid){
         return;
     }
 
-    printf("\n--- SWAP FILE: PID %d (%d words) ---\n", pid, word_count);
+    printf("\n--- SWAP %s FILE: PID %d (%d words) ---\n", action, pid, word_count);
     for (int i = 0; i < word_count; i++){
         MemoryWord word;
         if (fread(&word, sizeof(MemoryWord), 1, file) != 1)
