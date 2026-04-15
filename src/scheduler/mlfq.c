@@ -43,7 +43,7 @@ Process* execute_mlfq() {
     while (instructions_run < quantum) {
         printf("Running P%d | Instruction %d/%d\n", 
                 current_process->pcb->pid, instructions_run + 1, quantum);
-        
+        swap_in(current_process->pcb->pid);
         execute_instruction(current_process);
         instructions_run++;
 

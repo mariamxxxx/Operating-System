@@ -1,3 +1,90 @@
+#include "scheduler.h"
+#include "../interpreter/interpreter.h"
+#include "../process/processs.h"
+#include "../memory/memoryy.h"
+#include "queue.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include "../os/os_core.h"
+
+Process *execute_hrrn() {
+   
+    print_all_queues();
+
+    Process *current = os_get_running_process();
+    if (current == NULL) {
+        if (is_empty(&os_ready_queue)) {
+            printf("Scheduler: no proccesses in the ready queue\n");
+            return NULL; 
+        }
+        
+        QueueNode *node = os_ready_queue.head;
+        Process *best = NULL;
+        double myrate = -1.0;
+        
+        // response ratio = (wait + burst) / burst.
+        while (node != NULL) {
+            Process *p = node->process;
+
+            int wait = p->wait_time + (os_get_clock() - p->ready_since);
+            if (wait < 0) wait = 0;
+            int burst = p->code_line_count;
+            if (burst < 1) burst = 1; 
+            
+            double ratio = (double)(wait + burst) / burst;
+            printf("  P%d: wait=%d  burst=%d  ratio=%.2f\n", p->pcb->pid, wait, burst, ratio);
+
+            if (ratio > myrate) {
+                myrate = ratio;
+                best = p;
+            }
+            node = node->next;
+        }
+
+        //Remove the selected process and assign it to the CPU
+
+        remove_from_queue(&os_ready_queue, best);
+        current = best;
+
+        //Persist accumulated waiting time up to this point.
+        current->wait_time += os_get_clock() - current->ready_since;
+        if (current->wait_time < 0) current->wait_time = 0;
+
+        current->pcb->state = RUNNING;
+        update_state_in_memory(current->pcb->pid, RUNNING);
+        printf("HRRN: Selected Process %d (Ratio: %.2f)\n", current->pcb->pid, myrate);
+        print_all_queues(); 
+    }
+
+    //Execute EXACTLY ONE instruction (Matches 1 OS clock tick)
+    printf("Running Process %d | PC: %d\n", current->pcb->pid, current->pcb->pc);
+    swap_in(current->pcb->pid);
+    execute_instruction(current);
+
+    //Handle State Changes
+    if (current->pcb->state == FINISHED) {
+        printf("Process %d has finished.\n", current->pcb->pid);
+        update_state_in_memory(current->pcb->pid, FINISHED);
+        print_all_queues(); 
+        return current; 
+    }    
+    
+    if (current->pcb->state == BLOCKED) {
+       printf("Process %d is blocked\n", current->pcb->pid);
+       update_state_in_memory(current->pcb->pid, BLOCKED);
+       print_all_queues(); 
+       
+       // CRITICAL: Return NULL so os_step knows the CPU is free! 
+       // If you return `current` here, the OS will get stuck trying to run a blocked process.
+       return NULL; 
+    }
+
+    //Process is still RUNNING. Return it so os_step keeps it on the CPU next tick.
+    return current;
+}
+
+//old hrrn may be needed
+
 // #include "scheduler.h"
 // #include "../interpreter/interpreter.h"
 // #include "../process/processs.h"
@@ -108,87 +195,3 @@
 
 //     return best;
 // }
-
-#include "scheduler.h"
-#include "../interpreter/interpreter.h"
-#include "../process/processs.h"
-#include "../memory/memoryy.h"
-#include "queue.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include "../os/os_core.h"
-
-Process *execute_hrrn() {
-   
-    print_all_queues();
-
-    Process *current = os_get_running_process();
-    if (current == NULL) {
-        if (is_empty(&os_ready_queue)) {
-            printf("Scheduler: no proccesses in the ready queue\n");
-            return NULL; 
-        }
-        
-        QueueNode *node = os_ready_queue.head;
-        Process *best = NULL;
-        double myrate = -1.0;
-        
-        // Calculate HRRN using total wait in ready queue:
-        // response ratio = (wait + burst) / burst.
-        while (node != NULL) {
-            Process *p = node->process;
-
-            int wait = p->wait_time + (os_get_clock() - p->ready_since);
-            if (wait < 0) wait = 0;
-            int burst = p->code_line_count;
-            if (burst < 1) burst = 1; 
-            
-            double ratio = (double)(wait + burst) / burst;
-            printf("  P%d: wait=%d  burst=%d  ratio=%.2f\n", p->pcb->pid, wait, burst, ratio);
-
-            if (ratio > myrate) {
-                myrate = ratio;
-                best = p;
-            }
-            node = node->next;
-        }
-
-        //Remove the selected process and assign it to the CPU
-        remove_from_queue(&os_ready_queue, best);
-        current = best;
-
-        // Persist accumulated waiting time up to this dispatch point.
-        current->wait_time += os_get_clock() - current->ready_since;
-        if (current->wait_time < 0) current->wait_time = 0;
-
-        current->pcb->state = RUNNING;
-        update_state_in_memory(current->pcb->pid, RUNNING);
-        printf("HRRN: Selected Process %d (Ratio: %.2f)\n", current->pcb->pid, myrate);
-        print_all_queues(); 
-    }
-
-    //Execute EXACTLY ONE instruction (Matches 1 OS clock tick)
-    printf("Running Process %d | PC: %d\n", current->pcb->pid, current->pcb->pc);
-    execute_instruction(current);
-
-    //Handle State Changes
-    if (current->pcb->state == FINISHED) {
-        printf("Process %d has finished.\n", current->pcb->pid);
-        update_state_in_memory(current->pcb->pid, FINISHED);
-        print_all_queues(); 
-        return current; // os_step will see it is FINISHED and free the CPU
-    }    
-    
-    if (current->pcb->state == BLOCKED) {
-       printf("Process %d is blocked\n", current->pcb->pid);
-       update_state_in_memory(current->pcb->pid, BLOCKED);
-       print_all_queues(); 
-       
-       // CRITICAL: Return NULL so os_step knows the CPU is free! 
-       // If you return `current` here, the OS will get stuck trying to run a blocked process.
-       return NULL; 
-    }
-
-    //Process is still RUNNING. Return it so os_step keeps it on the CPU next tick.
-    return current;
-}

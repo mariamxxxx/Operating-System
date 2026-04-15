@@ -24,7 +24,7 @@ Process* execute_round_robin() {
         // The interpreter will use the PC from the PCB to find the instruction and execute it. 
 
         printf("Running Process %d | Instruction %d (PC: %d)\n", current_process->pcb->pid, i + 1, current_process->pcb->pc);
-
+        swap_in(current_process->pcb->pid);
         execute_instruction(current_process); 
         if (current_process->pcb->state == FINISHED){
             printf("process %d has finished.\n", current_process->pcb->pid);
