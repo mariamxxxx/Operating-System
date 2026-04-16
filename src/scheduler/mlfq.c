@@ -44,6 +44,7 @@ Process* execute_mlfq() {
         printf("Running P%d | Instruction %d/%d\n", 
                 current_process->pcb->pid, instructions_run + 1, quantum);
         swap_in(current_process->pcb->pid);
+        sync_pcb_from_memory(current_process->pcb->pid, current_process->pcb);
         execute_instruction(current_process);
         instructions_run++;
 

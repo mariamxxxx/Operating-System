@@ -11,11 +11,13 @@
  int time_quantum = 2;
 
 static SchedulerAlgorithm current_algo;
+static Process *pending_rr_process = NULL;
 
 void init_scheduler() {
     init_queue(&os_ready_queue);
     init_queue(&general_blocked_queue);
     init_mlfq();
+    pending_rr_process = NULL;
 } //will be called in the main implemetation
 
 
@@ -91,4 +93,17 @@ SchedulerAlgorithm get_current_algo() {
 
 void set_current_algo(SchedulerAlgorithm algo) {
     current_algo = algo;
+}
+
+void set_pending_rr_process(Process *process) {
+    pending_rr_process = process;
+}
+
+void flush_pending_rr_process(void) {
+    if (pending_rr_process == NULL) {
+        return;
+    }
+
+    enqueue(pending_rr_process, &os_ready_queue);
+    pending_rr_process = NULL;
 }

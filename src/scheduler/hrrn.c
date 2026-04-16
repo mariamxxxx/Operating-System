@@ -59,6 +59,7 @@ Process *execute_hrrn() {
     //Execute EXACTLY ONE instruction (Matches 1 OS clock tick)
     printf("Running Process %d | PC: %d\n", current->pcb->pid, current->pcb->pc);
     swap_in(current->pcb->pid);
+    sync_pcb_from_memory(current->pcb->pid, current->pcb);
     execute_instruction(current);
 
     //Handle State Changes
