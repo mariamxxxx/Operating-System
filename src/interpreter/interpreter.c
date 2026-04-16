@@ -276,6 +276,7 @@ void execute_instruction(Process* process) {
             }
         }
         if (strcmp(part, "input") == 0 ){
+            printf("Process %d is goint to take input, please press enter \n", process->pcb->pid);
             parts[i] = callTakeInput();
         }
     }
@@ -287,4 +288,13 @@ void execute_instruction(Process* process) {
     printf("Exec: Free parts\n");
     free_parts(parts, count);
     printf("Exec: Done\n");
+
+    char* instruction = readInstruction(process->pcb->pc);
+
+    if (instruction == NULL) {
+        printf("Process %d FINISHED\n", process->pcb->pid);
+        process->pcb->state = FINISHED;
+        update_state_in_memory(process->pcb->pid, FINISHED);
+        return;
+    }
 }
