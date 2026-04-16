@@ -83,6 +83,27 @@ void update_pc_in_memory(int pid, int pc){
     mem[start + 2].payload.program_counter = pc;
 }
 
+void sync_pcb_from_memory(int pid, PCB *pcb){
+    if (pcb == NULL)
+        return;
+
+    int start = -1;
+    for (int i = 0; i < map_i; i++){
+        if (memory_map[i].pid == pid){
+            start = memory_map[i].start_index;
+            break;
+        }
+    }
+
+    if (start == -1)
+        return;
+
+    pcb->state = mem[start + 1].payload.state;
+    pcb->pc = mem[start + 2].payload.program_counter;
+    pcb->memory_bounds[0] = mem[start + 3].payload.memory_boundary[0];
+    pcb->memory_bounds[1] = mem[start + 3].payload.memory_boundary[1];
+}
+
 void free_process_memory(int pid)
 {
     for (int i = 0; i < MEMORY_SIZE; i++){
