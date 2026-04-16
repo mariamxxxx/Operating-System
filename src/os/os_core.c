@@ -55,23 +55,17 @@ int os_is_running(void) {
 
 int os_step(void) {
 	Process *scheduled = NULL;
-	int had_running_before_step = 0;
 
 	if (!g_is_initialized) {
 		return -1;
 	}
 
-	had_running_before_step = (g_running_process != NULL);
-
 	scheduled = schedule_next_process(g_algorithm);
 	g_running_process = scheduled;
 
-    // Advance clock only when an instruction cycle made progress.
-    // This includes a scheduler return value, or a running process that executed
-    // and then blocked in the same step (returns NULL in HRRN).
-	if (scheduled != NULL || had_running_before_step) {
-		g_clock_tick++;
-	}
+	// Advance simulated time on every scheduler tick so deferred arrivals
+	// still become eligible even when no process is runnable.
+	g_clock_tick++;
 
 	if (g_running_process != NULL && g_running_process->pcb != NULL && g_running_process->pcb->state != RUNNING) {
 		g_running_process = NULL;
@@ -110,6 +104,14 @@ int os_is_idle(void) {
 		return 0;
 	}
 
+	if (g_algorithm == MLFQ) {
+		for (int i = 0; i < 4; i++) {
+			if (mlfq_queues[i].size > 0) {
+				return 0;
+			}
+		}
+	}
+
 	if (os_ready_queue.size > 0) {
 		return 0;
 	}
@@ -123,12 +125,20 @@ int os_is_idle(void) {
 
 OSSnapshot os_get_snapshot(void) {
 	OSSnapshot snapshot;
+	int ready_count = os_ready_queue.size;
+
+	if (g_algorithm == MLFQ) {
+		ready_count = 0;
+		for (int i = 0; i < 4; i++) {
+			ready_count += mlfq_queues[i].size;
+		}
+	}
 
 	snapshot.clock_tick = g_clock_tick;
 	snapshot.is_running = g_is_running;
 	snapshot.current_pid = (g_running_process != NULL && g_running_process->pcb != NULL) ? g_running_process->pcb->pid : -1;
 	snapshot.current_state = (g_running_process != NULL && g_running_process->pcb != NULL) ? g_running_process->pcb->state : READY;
-	snapshot.ready_queue_size = os_ready_queue.size;
+	snapshot.ready_queue_size = ready_count;
 	snapshot.blocked_queue_size = general_blocked_queue.size;
 	snapshot.algorithm = g_algorithm;
 
