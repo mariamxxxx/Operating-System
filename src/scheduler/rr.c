@@ -22,8 +22,6 @@ Process* execute_round_robin() {
 
         current_rr_process = dequeue(&os_ready_queue);
         rr_ticks_used = 0;
-        current_rr_process->pcb->state = RUNNING;
-        update_state_in_memory(current_rr_process->pcb->pid, RUNNING);
         printf("Scheduler: process %d using is selected for execution using Round Robin Algorithm\n", current_rr_process->pcb->pid);
         print_all_queues();
     }
@@ -31,6 +29,8 @@ Process* execute_round_robin() {
     printf("Running Process %d | Instruction %d (PC: %d)\n", current_rr_process->pcb->pid, rr_ticks_used + 1, current_rr_process->pcb->pc);
     swap_in(current_rr_process->pcb->pid);
     sync_pcb_from_memory(current_rr_process->pcb->pid, current_rr_process->pcb);
+    current_rr_process->pcb->state = RUNNING;
+    update_state_in_memory(current_rr_process->pcb->pid, RUNNING);
     execute_instruction(current_rr_process);
 
     if (current_rr_process->pcb->state == FINISHED) {

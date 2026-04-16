@@ -50,8 +50,6 @@ Process *execute_hrrn() {
         current->wait_time += os_get_clock() - current->ready_since;
         if (current->wait_time < 0) current->wait_time = 0;
 
-        current->pcb->state = RUNNING;
-        update_state_in_memory(current->pcb->pid, RUNNING);
         printf("HRRN: Selected Process %d (Ratio: %.2f)\n", current->pcb->pid, myrate);
         print_all_queues(); 
     }
@@ -60,6 +58,8 @@ Process *execute_hrrn() {
     printf("Running Process %d | PC: %d\n", current->pcb->pid, current->pcb->pc);
     swap_in(current->pcb->pid);
     sync_pcb_from_memory(current->pcb->pid, current->pcb);
+    current->pcb->state = RUNNING;
+    update_state_in_memory(current->pcb->pid, RUNNING);
     execute_instruction(current);
 
     //Handle State Changes
