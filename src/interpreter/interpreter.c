@@ -289,9 +289,9 @@ void execute_instruction(Process* process) {
     free_parts(parts, count);
     printf("Exec: Done\n");
 
-    char* instruction = readInstruction(process->pcb->pc);
+    char* next_instruction = readInstruction(process->pcb->pc);
 
-    if (instruction == NULL) {
+    if (next_instruction == NULL) {
         printf("Process %d FINISHED\n", process->pcb->pid);
         process->pcb->state = FINISHED;
         update_state_in_memory(process->pcb->pid, FINISHED);
