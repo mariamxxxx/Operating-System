@@ -2,6 +2,38 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(_WIN32) && !defined(strtok_r)
+static char *portable_strtok_r(char *str, const char *delim, char **saveptr) {
+    char *token_start;
+    char *token_end;
+
+    if (str != NULL) {
+        *saveptr = str;
+    }
+    if (*saveptr == NULL) {
+        return NULL;
+    }
+
+    token_start = *saveptr + strspn(*saveptr, delim);
+    if (*token_start == '\0') {
+        *saveptr = NULL;
+        return NULL;
+    }
+
+    token_end = token_start + strcspn(token_start, delim);
+    if (*token_end == '\0') {
+        *saveptr = NULL;
+    } else {
+        *token_end = '\0';
+        *saveptr = token_end + 1;
+    }
+
+    return token_start;
+}
+
+#define strtok_r(str, delim, saveptr) portable_strtok_r((str), (delim), (saveptr))
+#endif
+
 #include "../memory/memoryy.h"
 #include "../os/syscalls.h"
 #include "../scheduler/scheduler.h"
