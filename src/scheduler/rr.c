@@ -26,11 +26,13 @@ Process* execute_round_robin() {
         print_all_queues();
     }
 
-    printf("Running Process %d | Instruction %d (PC: %d)\n", current_rr_process->pcb->pid, rr_ticks_used + 1, current_rr_process->pcb->pc);
+    int instruction_number = current_rr_process->pcb->pc - current_rr_process->pcb->memory_bounds[0] - 6;
+    printf("Running Process %d | Instruction %d (PC: %d)\n", current_rr_process->pcb->pid, instruction_number, current_rr_process->pcb->pc);
     swap_in(current_rr_process->pcb->pid);
     sync_pcb_from_memory(current_rr_process->pcb->pid, current_rr_process->pcb);
     current_rr_process->pcb->state = RUNNING;
     update_state_in_memory(current_rr_process->pcb->pid, RUNNING);
+    scheduler_set_last_executed_pid(current_rr_process->pcb->pid); //gui
     execute_instruction(current_rr_process);
 
     if (current_rr_process->pcb->state == FINISHED) {

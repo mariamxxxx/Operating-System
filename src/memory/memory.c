@@ -3,6 +3,7 @@
 #include "../process/processs.h"
 #include <stdio.h>
 #include <string.h>
+#include <dirent.h>
 
 #define SWAP_DIR "src/disk"
 MemoryWord mem[MEMORY_SIZE];
@@ -14,7 +15,39 @@ static void build_swap_path(int pid, char *out, size_t out_size){
 }
 
 static void print_swap_file(int pid, const char *action);
+//gui
+static void print_resident_block(int pid, const char *action);
 
+static int starts_with(const char *s, const char *prefix){
+    return strncmp(s, prefix, strlen(prefix)) == 0;
+}
+
+static int ends_with(const char *s, const char *suffix){
+    size_t len_s = strlen(s);
+    size_t len_suffix = strlen(suffix);
+    if (len_suffix > len_s) return 0;
+    return strcmp(s + (len_s - len_suffix), suffix) == 0;
+}
+
+static void clear_swap_directory(void){
+    DIR *dir = opendir(SWAP_DIR);
+    if (dir == NULL){
+        return;
+    }
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL){
+        const char *name = entry->d_name;
+        if (starts_with(name, "pid_") && ends_with(name, ".swap")){
+            char path[MAX_STRING];
+            snprintf(path, sizeof(path), "%s/%s", SWAP_DIR, name);
+            remove(path);
+        }
+    }
+
+    closedir(dir);
+}
+//gui end
 // INDEX
 static MapEntry memory_map[MEMORY_SIZE / 2];
 static int map_i = 0; // tracks the next available index in memory_map
@@ -197,6 +230,9 @@ static int allocate_block(int pid, int num_words){
 // initialize memory
 void init_memory()
 {
+    clear_swap_directory(); //gui
+    map_i = 0; //gui
+
     for (int i = 0; i < MEMORY_SIZE; i++){
         mem[i].isFree = 1;
         mem[i].ownerPid = -1;
@@ -378,10 +414,8 @@ void swap_in(int pid){
     }
 
     fclose(file);
-    print_swap_file(pid, "IN");
-    remove(path);
 
-    // update stale addresses
+    // Update stale addresses after relocation so runtime PCB values stay consistent.
     int old_start = mem[start + 3].payload.memory_boundary[0];
     int offset = start - old_start;
 
@@ -389,8 +423,59 @@ void swap_in(int pid){
     mem[start + 3].payload.memory_boundary[0] = start;
     mem[start + 3].payload.memory_boundary[1] += offset;
 
-}
+    //print_resident_block(pid, "IN");
+    remove(path);
 
+}
+//gui 
+static void print_resident_block(int pid, const char *action){
+    int start = -1;
+    int word_count = 0;
+
+    for (int i = 0; i < map_i; i++){
+        if (memory_map[i].pid == pid){
+            start = memory_map[i].start_index;
+            word_count = memory_map[i].word_count;
+            break;
+        }
+    }
+
+    if (start < 0 || word_count <= 0){
+        printf("No resident block found for PID %d\n", pid);
+        return;
+    }
+
+    printf("\n--- SWAP %s RESIDENT: PID %d (%d words @ start=%d) ---\n", action, pid, word_count, start);
+    for (int i = 0; i < word_count; i++){
+        int idx = start + i;
+        MemoryWord word = mem[idx];
+
+        switch (word.type){
+        case PCB_FIELD:
+            printf("[%d] PCB ", idx);
+            if (i == 0)
+                printf("pid=%d\n", word.payload.pid);
+            else if (i == 1)
+                printf("state=%d\n", word.payload.state);
+            else if (i == 2)
+                printf("pc=%d\n", word.payload.program_counter);
+            else if (i == 3)
+                printf("bounds=[%d, %d]\n", word.payload.memory_boundary[0], word.payload.memory_boundary[1]);
+            else
+                printf("\n");
+            break;
+        case VARIABLE:
+            printf("[%d] VAR %s=%s\n", idx, word.payload.var.name, word.payload.var.value);
+            break;
+        case CODE_LINE:
+            printf("[%d] CODE %s\n", idx, word.payload.code_line);
+            break;
+        default:
+            printf("[%d] UNKNOWN type=%d\n", idx, word.type);
+        }
+    }
+}
+//end gui
 void print_memory(){
     printf("\n--- MEMORY DUMP ---\n");
     for (int i = 0; i < MEMORY_SIZE; i++){

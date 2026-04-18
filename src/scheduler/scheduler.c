@@ -12,12 +12,14 @@
 
 static SchedulerAlgorithm current_algo;
 static Process *pending_rr_process = NULL;
+static int g_scheduler_last_executed_pid = -1; //gui
 
 void init_scheduler() {
     init_queue(&os_ready_queue);
     init_queue(&general_blocked_queue);
     init_mlfq();
     pending_rr_process = NULL;
+    g_scheduler_last_executed_pid = -1; //gui
 } //will be called in the main implemetation
 
 
@@ -79,6 +81,7 @@ void add_process_to_scheduler(Process *process) {
 
 Process* schedule_next_process(SchedulerAlgorithm algo) {
     current_algo=algo;
+    g_scheduler_last_executed_pid = -1; //gui
     switch(algo) {
         case RR:   return execute_round_robin();
         case HRRN: return execute_hrrn();
@@ -107,3 +110,11 @@ void flush_pending_rr_process(void) {
     enqueue(pending_rr_process, &os_ready_queue);
     pending_rr_process = NULL;
 }
+
+void scheduler_set_last_executed_pid(int pid) {
+    g_scheduler_last_executed_pid = pid;
+} //gui
+
+int scheduler_get_last_executed_pid(void) {
+    return g_scheduler_last_executed_pid;
+} //gui

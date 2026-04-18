@@ -60,6 +60,7 @@ Process *execute_hrrn() {
     sync_pcb_from_memory(current->pcb->pid, current->pcb);
     current->pcb->state = RUNNING;
     update_state_in_memory(current->pcb->pid, RUNNING);
+    scheduler_set_last_executed_pid(current->pcb->pid); //gui
     execute_instruction(current);
 
     //Handle State Changes

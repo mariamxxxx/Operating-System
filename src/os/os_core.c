@@ -12,6 +12,7 @@ static int g_is_running = 0;
 static int g_is_initialized = 0;
 static SchedulerAlgorithm g_algorithm = RR;
 static Process *g_running_process = NULL;
+static int g_last_dispatched_pid = -1;
 
 void os_init(SchedulerAlgorithm algorithm) {
 	g_algorithm = algorithm;
@@ -19,6 +20,7 @@ void os_init(SchedulerAlgorithm algorithm) {
 	g_clock_tick = 0;
 	g_is_running = 0;
 	g_running_process = NULL;
+	g_last_dispatched_pid = -1;
 
 	init_memory();
 	init_scheduler();
@@ -35,6 +37,7 @@ void os_reset(void) {
 	g_clock_tick = 0;
 	g_is_running = 0;
 	g_running_process = NULL;
+	g_last_dispatched_pid = -1;
 
 	init_memory();
 	init_scheduler();
@@ -55,13 +58,20 @@ int os_is_running(void) {
 
 int os_step(void) {
 	Process *scheduled = NULL;
+	int executed_pid = -1;
 
 	if (!g_is_initialized) {
 		return -1;
 	}
 
 	scheduled = schedule_next_process(g_algorithm);
+	executed_pid = scheduler_get_last_executed_pid();
 	g_running_process = scheduled;
+	if (executed_pid != -1) {
+		g_last_dispatched_pid = executed_pid;
+	} else {
+		g_last_dispatched_pid = -1;
+	}
 
 	// Advance simulated time on every scheduler tick so deferred arrivals
 	// still become eligible even when no process is runnable.
@@ -137,6 +147,9 @@ OSSnapshot os_get_snapshot(void) {
 	snapshot.clock_tick = g_clock_tick;
 	snapshot.is_running = g_is_running;
 	snapshot.current_pid = (g_running_process != NULL && g_running_process->pcb != NULL) ? g_running_process->pcb->pid : -1;
+	if (snapshot.current_pid == -1 && g_last_dispatched_pid != -1) {
+		snapshot.current_pid = g_last_dispatched_pid;
+	}
 	snapshot.current_state = (g_running_process != NULL && g_running_process->pcb != NULL) ? g_running_process->pcb->state : READY;
 	snapshot.ready_queue_size = ready_count;
 	snapshot.blocked_queue_size = general_blocked_queue.size;

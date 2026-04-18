@@ -179,6 +179,20 @@ void execute_instruction(Process* process) {
     }
 
     printf("Exec: PC %d\n", process->pcb->pc);
+    
+    //gui
+    // Guard against stale/corrupted PC values when processes are swapped frequently. 
+    if (process->pcb->pc < process->pcb->memory_bounds[0] + 7 ||
+        process->pcb->pc > process->pcb->memory_bounds[1]) {
+        printf("Exec: PC %d out of process bounds [%d, %d], marking FINISHED\n",
+               process->pcb->pc,
+               process->pcb->memory_bounds[0],
+               process->pcb->memory_bounds[1]);
+        process->pcb->state = FINISHED;
+        update_state_in_memory(process->pcb->pid, FINISHED);
+        return;
+    }
+
     char* instruction = readInstruction(process->pcb->pc);
 
     if (instruction == NULL) {
@@ -288,7 +302,15 @@ void execute_instruction(Process* process) {
     printf("Exec: Free parts\n");
     free_parts(parts, count);
     printf("Exec: Done\n");
-
+    
+    //gui
+    if (process->pcb->pc > process->pcb->memory_bounds[1]) {
+        printf("Process %d FINISHED (reached end of memory bounds)\n", process->pcb->pid);
+        process->pcb->state = FINISHED;
+        update_state_in_memory(process->pcb->pid, FINISHED);
+        return;
+    }
+//
     char* next_instruction = readInstruction(process->pcb->pc);
 
     if (next_instruction == NULL) {

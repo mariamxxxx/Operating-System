@@ -44,6 +44,7 @@ Process* execute_mlfq() {
         sync_pcb_from_memory(current_process->pcb->pid, current_process->pcb);
         current_process->pcb->state = RUNNING;
         update_state_in_memory(current_process->pcb->pid, RUNNING);
+        scheduler_set_last_executed_pid(current_process->pcb->pid); //gui
         execute_instruction(current_process);
         instructions_run++;
 
