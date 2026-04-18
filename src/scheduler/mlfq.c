@@ -32,9 +32,6 @@ Process* execute_mlfq() {
 
     //quantum for this leve(2^i)
     int quantum = (int)pow(2, current_level);
-    current_process->pcb->state = RUNNING;
-    update_state_in_memory(current_process->pcb->pid, RUNNING);
-    
     printf("MLFQ: Selected P%d from Queue %d (Quantum: %d)\n", 
             current_process->pcb->pid, current_level, quantum);
 
@@ -44,6 +41,9 @@ Process* execute_mlfq() {
         printf("Running P%d | Instruction %d/%d\n", 
                 current_process->pcb->pid, instructions_run + 1, quantum);
         swap_in(current_process->pcb->pid);
+        sync_pcb_from_memory(current_process->pcb->pid, current_process->pcb);
+        current_process->pcb->state = RUNNING;
+        update_state_in_memory(current_process->pcb->pid, RUNNING);
         execute_instruction(current_process);
         instructions_run++;
 

@@ -79,6 +79,8 @@ int main(void) {
             }
         }
 
+        flush_pending_rr_process();
+
         if (remaining_to_load == 0 && os_is_idle()) {
             break;
         }

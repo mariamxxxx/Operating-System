@@ -1,9 +1,9 @@
 semWait userInput
-assign a input
+assign m input
 semSignal userInput
 semWait file
-assign b readFile a
+assign z readFile m
 semSignal file
 semWait userOutput
-print b
+print z
 semSignal userOutput

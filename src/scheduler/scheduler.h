@@ -19,6 +19,8 @@ void init_mlfq();
 void init_scheduler();
 void set_current_algo(SchedulerAlgorithm algo);
 void add_process_to_scheduler(Process* process);
+void set_pending_rr_process(Process *process);
+void flush_pending_rr_process(void);
 void print_all_queues();
 SchedulerAlgorithm get_current_algo(); 
 

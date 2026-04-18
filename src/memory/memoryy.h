@@ -51,6 +51,7 @@ Process* allocate_memory(int pid, Process *proc);
 
 void update_state_in_memory(int pid, ProcessState state);
 void update_pc_in_memory(int pid, int pc);
+void sync_pcb_from_memory(int pid, PCB *pcb);
 // void update_pcb_in_memory(int pid, PCB *pcb);
 
 
