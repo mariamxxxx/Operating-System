@@ -77,38 +77,26 @@ static int parse_resource_token(const char *token) {
     return -1;
 }
 
-// extern void loadAndInterpret(char* filename) { 
-//     if (filename == NULL) {
-//         printf("[ERROR] Filename is NULL. Cannot proceed.\n");
-//         return;
-//     }
-    
-//     char* fileContent = readFile(filename); 
-//     if (fileContent == NULL) {
-//         printf("[ERROR] Could not load %s - readFile returned NULL\n", filename);
-//         printf("[ERROR] File may not exist or read permission denied.\n");
-//         return;
-//     }
-    
-//     CountLines(fileContent);
-//     parseInstructionsIntoMemory(fileContent);
-    
-//     free(fileContent);
-// }
+
 
 void callSemWait(Process *process , int resourceType){
+    printf("=================================================\n");
     printf("SemWait: PID %d, Res %d\n", process->pcb->pid, resourceType);
     semWait(process, (enum RESOURCE) resourceType);
     printf("SemWait done\n");
+    printf("=================================================\n");
 }
 
 void callSemSignal(int resourceType){
+    printf("=================================================\n");
     printf("SemSignal: Res %d\n", resourceType);
     semSignal((enum RESOURCE) resourceType);
     printf("SemSignal done\n");
+    printf("=================================================\n");
 }
 
 void callAssign(int pid , char* varName, char* varValue){
+    printf("=================================================\n");
     printf("Assign: PID %d, %s = %s\n", pid, varName, varValue);
     if (varValue == NULL) {
         printf("Assign: NULL value, skipping assignment\n");
@@ -116,9 +104,11 @@ void callAssign(int pid , char* varName, char* varValue){
     }
     writeToMemory(pid, varName, varValue);
     printf("Assign done\n");
+    printf("=================================================\n");
 }
 
 void callPrint(char* data){
+    printf("=================================================\n");
     printf("Print: %s\n", data);
     if (data == NULL) {
         printData("(null)");
@@ -126,9 +116,11 @@ void callPrint(char* data){
         printData(readFromMemory(global_pid, data));
     }
     printf("Print done\n");
+    printf("=================================================\n");
 }
 
 void callPrintFromTo(int from, int to){
+    printf("=================================================\n");
     printf("PrintFromTo: %d to %d\n", from, to);
     while(from<=to){
         char buffer[20];
@@ -137,9 +129,11 @@ void callPrintFromTo(int from, int to){
         from++;
     }
     printf("PrintFromTo done\n");
+    printf("=================================================\n");
 }
 
 void callWriteFile(char* filename, char* content){
+    printf("=================================================\n");
     printf("WriteFile: %s\n", filename);
     char* contentValue = readFromMemory(global_pid, content);
     if (contentValue == NULL) {
@@ -148,9 +142,11 @@ void callWriteFile(char* filename, char* content){
     }
     writeFile( readFromMemory(global_pid, filename), contentValue);
     printf("WriteFile done\n");
+    printf("=================================================\n");
 }
 
 char* callReadFile(char* filename){
+    printf("=================================================\n");
     printf("ReadFile: %s\n", filename);
     char* result = readFromMemory(global_pid, filename);
     if (result == NULL) {
@@ -158,13 +154,17 @@ char* callReadFile(char* filename){
         return strdup("");  // Return malloced empty string
     }
     printf("ReadFile: got %s\n", result);
+    printf("=================================================\n");
     return strdup(result);  // Return malloced copy
+
 }
 
 char* callTakeInput(){
+    printf("=================================================\n");
     printf("TakeInput\n");
     char* result = takeInput();
     printf("Input: %s\n", result);
+    printf("=================================================\n");
     return result;
 }
 
@@ -174,35 +174,37 @@ void execute_instruction(Process* process) {
 
     printf("Exec: PID %d\n", process->pcb->pid);
     if (process == NULL || process->pcb == NULL) {
-        printf("Exec: NULL process\n");
-        return;
+    printf("[ERROR] Attempted to execute a NULL process.\n");        
+    return;
     }
 
-    printf("Exec: PC %d\n", process->pcb->pc);
-    char* instruction = readInstruction(process->pcb->pc);
+    printf("\n=================================================\n");
+    printf("▶ Executing Process PID = %d | PC = %d\n",process->pcb->pid, process->pcb->pc);
+    printf("=================================================\n");    char* instruction = readInstruction(process->pcb->pc);
 
     if (instruction == NULL) {
-        printf("Exec: No instr, FINISHED\n");
+        printf("[INFO] No instruction found. Process %d has finished execution.\n",process->pcb->pid);
         process->pcb->state = FINISHED;
         update_state_in_memory(process->pcb->pid, FINISHED);
-        printf("Execution Error: No instruction found at PC %d\n", process->pcb->pc);
         return;
     }
 
-    printf("Exec: Instr '%s'\n", instruction);
+    printf("[FETCH] Instruction: \"%s\"\n", instruction);
     int count = 0;
     char** parts = splitAndReverse(instruction, &count);
 
-    printf("Exec: Parts\n");
     for (int i = 0; i < count; i++) {
-        printf("Exec: Part[%d] '%s'\n", i, parts[i]);
+        printf("[DECODE] Instruction parts (processed right-to-left):\n");
+        printf("  └ Part[%d]: %s\n", i, parts[i]);
         char* part = parts[i];
+
+        printf("\n[EXECUTION]\n");
     
         if (strcmp(part, "000") == 0 ){
             if (i>=1){
                 // callSemWait(process, atoi(parts[i-1]));
                 int resourceType = parse_resource_token(parts[i-1]);
-                if (resourceType >= 0) {
+                if (resourceType == 0 || resourceType == 1 || resourceType == 2)  {
                     callSemWait(process, resourceType);
                 } else {
                     printf("Syntax Error: Invalid resource type '%s' for semWait in instruction %s\n", parts[i-1], instruction);
@@ -216,7 +218,7 @@ void execute_instruction(Process* process) {
             if (i>=1){
                 // callSemSignal(atoi(parts[i-1]));
                 int resourceType = parse_resource_token(parts[i-1]);
-                if (resourceType >= 0) {
+                if (resourceType == 0 || resourceType == 1 || resourceType == 2)  {
                     callSemSignal(resourceType);
                 } else {
                     printf("Syntax Error: Invalid resource type '%s' for semSignal in instruction %s\n", parts[i-1], instruction);
@@ -283,18 +285,23 @@ void execute_instruction(Process* process) {
     
 //one?
     process->pcb->pc += 1;
-    printf("Exec: Update PC\n");
+    // printf("Exec: Update PC\n");
     update_pc_in_memory(process->pcb->pid, process->pcb->pc);
-    printf("Exec: Free parts\n");
+    // printf("Exec: Free parts\n");
     free_parts(parts, count);
-    printf("Exec: Done\n");
+    // printf("Exec: Done\n");
 
     char* next_instruction = readInstruction(process->pcb->pc);
 
     if (next_instruction == NULL) {
-        printf("Process %d FINISHED\n", process->pcb->pid);
-        process->pcb->state = FINISHED;
+printf("\n[INFO] Process %d has completed all instructions.\n",process->pcb->pid);        process->pcb->state = FINISHED;
         update_state_in_memory(process->pcb->pid, FINISHED);
         return;
     }
+
+    printf("=================================================\n");
+    printf("✓ End of instruction for PID %d\n", process->pcb->pid);
+    printf("=================================================\n");
 }
+
+
