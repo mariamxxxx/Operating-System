@@ -4,9 +4,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <dirent.h>
+#include <stdarg.h>
 
 #define SWAP_DIR "src/disk"
 MemoryWord mem[MEMORY_SIZE];
+
+// Link to the GUI logger
+extern void gui_log(const char* format, ...);
 
 // HELPERS
 // build the file path for the swap file of a given PID.
@@ -48,6 +52,7 @@ static void clear_swap_directory(void){
     closedir(dir);
 }
 //gui end
+
 // INDEX
 static MapEntry memory_map[MEMORY_SIZE / 2];
 static int map_i = 0; // tracks the next available index in memory_map
@@ -151,23 +156,22 @@ void free_process_memory(int pid)
             break;
         }
     }
-    // can add delete here but more redundant
 }
 
 char *read_code_line(int pc){
-    printf("read_code_line: pc=%d\n", pc);
+    gui_log("read_code_line: pc=%d", pc);
     if (pc < 0 || pc >= MEMORY_SIZE){
-        printf("read_code_line: pc out of bounds\n");
+        gui_log("read_code_line: pc out of bounds");
         return NULL;
     }
 
-    printf("read_code_line: mem[%d].isFree=%d, type=%d\n", pc, mem[pc].isFree, mem[pc].type);
+    gui_log("read_code_line: mem[%d].isFree=%d, type=%d", pc, mem[pc].isFree, mem[pc].type);
     if (mem[pc].isFree || mem[pc].type != CODE_LINE){
-        printf("read_code_line: not a valid code line\n");
+        gui_log("read_code_line: not a valid code line");
         return NULL;
     }
 
-    printf("read_code_line: returning '%s'\n", mem[pc].payload.code_line);
+    gui_log("read_code_line: returning '%s'", mem[pc].payload.code_line);
     return mem[pc].payload.code_line;
 }
 
@@ -206,7 +210,6 @@ static int allocate_block(int pid, int num_words){
         }
     }
     // edge case: if last process + remaining empty space in memory can fit process
-    // condition checks en el process mesh atwal mn el memory
     if (map_i > 0){
         int last = map_i - 1;
         int end_of_last = memory_map[last].start_index + memory_map[last].word_count;
@@ -230,8 +233,8 @@ static int allocate_block(int pid, int num_words){
 // initialize memory
 void init_memory()
 {
-    clear_swap_directory(); //gui
-    map_i = 0; //gui
+    clear_swap_directory(); 
+    map_i = 0; 
 
     for (int i = 0; i < MEMORY_SIZE; i++){
         mem[i].isFree = 1;
@@ -242,15 +245,15 @@ void init_memory()
 
 // allocate a contiguous block of memory for a process, returning the starting index
 Process *allocate_memory(int pid, Process *proc){
-    printf("allocate_memory: PID=%d, code_line_count=%d\n", pid, proc->code_line_count);
+    gui_log("allocate_memory: PID=%d, code_line_count=%d", pid, proc->code_line_count);
     if (proc->pcb == NULL || proc->code_line_count > MAX_CODE_LINES)
         return NULL;
 
     int code_lines = proc->code_line_count;
     int num_words = 7 + code_lines; // 4 pcb fields + 3 vars + code lines
-    printf("allocate_memory: num_words=%d\n", num_words);
+    gui_log("allocate_memory: num_words=%d", num_words);
     int start_index = allocate_block(pid, num_words);
-    printf("allocate_memory: start_index=%d\n", start_index);
+    gui_log("allocate_memory: start_index=%d", start_index);
     if (start_index == -1)
         return NULL;
 
@@ -296,7 +299,7 @@ Process *allocate_memory(int pid, Process *proc){
     idx++;
 
     for (int i = 0; i < code_lines; i++){
-        printf("allocate_memory: setting mem[%d] to CODE_LINE, code='%s'\n", idx, proc->code_lines[i]);
+        gui_log("allocate_memory: setting mem[%d] to CODE_LINE, code='%s'", idx, proc->code_lines[i]);
         mem[idx].type = CODE_LINE;
         strncpy(mem[idx].payload.code_line, proc->code_lines[i], MAX_STRING - 1);
         mem[idx].payload.code_line[MAX_STRING - 1] = '\0'; // guarantee null termination
@@ -305,10 +308,10 @@ Process *allocate_memory(int pid, Process *proc){
 
     // Keep PCB runtime fields in sync with allocated memory layout.
     proc->pcb->pc = start_index + 7;
-    printf("allocate_memory: set PC to %d\n", proc->pcb->pc);
+    gui_log("allocate_memory: set PC to %d", proc->pcb->pc);
     proc->pcb->memory_bounds[0] = start_index;
     proc->pcb->memory_bounds[1] = start_index + num_words - 1;
-    printf("allocate_memory: memory_bounds [%d, %d]\n", proc->pcb->memory_bounds[0], proc->pcb->memory_bounds[1]);
+    gui_log("allocate_memory: memory_bounds [%d, %d]", proc->pcb->memory_bounds[0], proc->pcb->memory_bounds[1]);
 
     return proc;
 }
@@ -327,9 +330,7 @@ char *read_word(int pid, char *varName){
     return NULL;
 }
 
-// write a variable's value to memory for a given PID and variable name. if var already exists, update its value.
-// if not, write to the first empty slot within the process block.
-// does nothing if no empty slot is available.
+// write a variable's value to memory for a given PID and variable name.
 void write_word(int pid, char *key, char *value){
     if (key == NULL || value == NULL)
         return;
@@ -415,7 +416,6 @@ void swap_in(int pid){
 
     fclose(file);
 
-    // Update stale addresses after relocation so runtime PCB values stay consistent.
     int old_start = mem[start + 3].payload.memory_boundary[0];
     int offset = start - old_start;
 
@@ -423,11 +423,9 @@ void swap_in(int pid){
     mem[start + 3].payload.memory_boundary[0] = start;
     mem[start + 3].payload.memory_boundary[1] += offset;
 
-    //print_resident_block(pid, "IN");
     remove(path);
-
 }
-//gui 
+
 static void print_resident_block(int pid, const char *action){
     int start = -1;
     int word_count = 0;
@@ -441,56 +439,50 @@ static void print_resident_block(int pid, const char *action){
     }
 
     if (start < 0 || word_count <= 0){
-        printf("No resident block found for PID %d\n", pid);
+        gui_log("No resident block found for PID %d", pid);
         return;
     }
 
-    printf("\n--- SWAP %s RESIDENT: PID %d (%d words @ start=%d) ---\n", action, pid, word_count, start);
+    gui_log("--- SWAP %s RESIDENT: PID %d (%d words @ start=%d) ---", action, pid, word_count, start);
     for (int i = 0; i < word_count; i++){
         int idx = start + i;
         MemoryWord word = mem[idx];
 
         switch (word.type){
         case PCB_FIELD:
-            printf("[%d] PCB ", idx);
-            if (i == 0)
-                printf("pid=%d\n", word.payload.pid);
-            else if (i == 1)
-                printf("state=%d\n", word.payload.state);
-            else if (i == 2)
-                printf("pc=%d\n", word.payload.program_counter);
-            else if (i == 3)
-                printf("bounds=[%d, %d]\n", word.payload.memory_boundary[0], word.payload.memory_boundary[1]);
-            else
-                printf("\n");
+            if (i == 0) gui_log("[%d] PCB pid=%d", idx, word.payload.pid);
+            else if (i == 1) gui_log("[%d] PCB state=%d", idx, word.payload.state);
+            else if (i == 2) gui_log("[%d] PCB pc=%d", idx, word.payload.program_counter);
+            else if (i == 3) gui_log("[%d] PCB bounds=[%d, %d]", idx, word.payload.memory_boundary[0], word.payload.memory_boundary[1]);
+            else gui_log("[%d] PCB ", idx);
             break;
         case VARIABLE:
-            printf("[%d] VAR %s=%s\n", idx, word.payload.var.name, word.payload.var.value);
+            gui_log("[%d] VAR %s=%s", idx, word.payload.var.name, word.payload.var.value);
             break;
         case CODE_LINE:
-            printf("[%d] CODE %s\n", idx, word.payload.code_line);
+            gui_log("[%d] CODE %s", idx, word.payload.code_line);
             break;
         default:
-            printf("[%d] UNKNOWN type=%d\n", idx, word.type);
+            gui_log("[%d] UNKNOWN type=%d", idx, word.type);
         }
     }
 }
-//end gui
+
 void print_memory(){
-    printf("\n--- MEMORY DUMP ---\n");
+    gui_log("--- MEMORY DUMP ---");
     for (int i = 0; i < MEMORY_SIZE; i++){
         if (mem[i].isFree)
-            printf("[%d] FREE\n", i);
+            gui_log("[%d] FREE", i);
         else
         {
             if (mem[i].type == VARIABLE){
-                printf("[%d] PID=%d VAR %s=%s\n",
+                gui_log("[%d] PID=%d VAR %s=%s",
                        i, mem[i].ownerPid, mem[i].payload.var.name, mem[i].payload.var.value);
             } else if (mem[i].type == CODE_LINE){
-                printf("[%d] PID=%d CODE %s\n",
+                gui_log("[%d] PID=%d CODE %s",
                        i, mem[i].ownerPid, mem[i].payload.code_line);
             } else {
-                printf("[%d] PID=%d PCB\n", i, mem[i].ownerPid);
+                gui_log("[%d] PID=%d PCB", i, mem[i].ownerPid);
             }
         }
     }
@@ -502,18 +494,18 @@ static void print_swap_file(int pid, const char *action){
 
     FILE *file = fopen(path, "rb");
     if (file == NULL){
-        printf("No swap file found for PID %d\n", pid);
+        gui_log("No swap file found for PID %d", pid);
         return;
     }
 
     int word_count = 0;
     if (fread(&word_count, sizeof(int), 1, file) != 1 || word_count <= 0){
-        printf("Swap file for PID %d is empty or corrupt\n", pid);
+        gui_log("Swap file for PID %d is empty or corrupt", pid);
         fclose(file);
         return;
     }
 
-    printf("\n--- SWAP %s FILE: PID %d (%d words) ---\n", action, pid, word_count);
+    gui_log("--- SWAP %s FILE: PID %d (%d words) ---", action, pid, word_count);
     for (int i = 0; i < word_count; i++){
         MemoryWord word;
         if (fread(&word, sizeof(MemoryWord), 1, file) != 1)
@@ -521,26 +513,20 @@ static void print_swap_file(int pid, const char *action){
 
         switch (word.type){
         case PCB_FIELD:
-            printf("[%d] PCB ", i);
-            if (i == 0)
-                printf("pid=%d\n", word.payload.pid);
-            else if (i == 1)
-                printf("state=%d\n", word.payload.state);
-            else if (i == 2)
-                printf("pc=%d\n", word.payload.program_counter);
-            else if (i == 3)
-                printf("bounds=[%d, %d]\n", word.payload.memory_boundary[0], word.payload.memory_boundary[1]);
-            else
-                printf("\n");
+            if (i == 0) gui_log("[%d] PCB pid=%d", i, word.payload.pid);
+            else if (i == 1) gui_log("[%d] PCB state=%d", i, word.payload.state);
+            else if (i == 2) gui_log("[%d] PCB pc=%d", i, word.payload.program_counter);
+            else if (i == 3) gui_log("[%d] PCB bounds=[%d, %d]", i, word.payload.memory_boundary[0], word.payload.memory_boundary[1]);
+            else gui_log("[%d] PCB ", i);
             break;
         case VARIABLE:
-            printf("[%d] VAR %s=%s\n", i, word.payload.var.name, word.payload.var.value);
+            gui_log("[%d] VAR %s=%s", i, word.payload.var.name, word.payload.var.value);
             break;
         case CODE_LINE:
-            printf("[%d] CODE %s\n", i, word.payload.code_line);
+            gui_log("[%d] CODE %s", i, word.payload.code_line);
             break;
         default:
-            printf("[%d] UNKNOWN type=%d\n", i, word.type);
+            gui_log("[%d] UNKNOWN type=%d", i, word.type);
         }
     }
 

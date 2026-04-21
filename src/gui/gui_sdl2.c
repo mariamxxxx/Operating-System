@@ -1,7 +1,7 @@
 ﻿#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-
+#include <stdarg.h> 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
@@ -10,706 +10,306 @@
 #include "../os/syscalls.h"
 #include "../scheduler/scheduler.h"
 
-typedef struct {
-    const char *name;
-    int arrival;
-    int loaded;
-} ProgramSpec;
+#define MAX_LOG_LINES 1000
+#define VISIBLE_LINES 10
+#define MAX_INPUT_LEN 64
 
-typedef struct {
-    SDL_Rect rect;
-    const char *label;
-} UIButton;
+// Modern Dark Theme Colors
+SDL_Color C_BG      = {30, 30, 46, 255};   
+SDL_Color C_PANEL   = {49, 50, 68, 255};   
+SDL_Color C_ACCENT  = {137, 180, 250, 255}; 
+SDL_Color C_TEXT    = {205, 214, 244, 255}; 
+SDL_Color C_GREEN   = {166, 227, 161, 255}; 
+SDL_Color C_RED     = {243, 139, 168, 255}; 
+SDL_Color C_YELLOW  = {249, 226, 175, 255}; 
+SDL_Color C_INACTIVE= {24, 24, 37, 255}; 
 
-typedef struct {
-    int active;
-    int pid;
-    int start_x;
-    int start_y;
-    int end_x;
-    int end_y;
-    Uint32 start_ms;
-    Uint32 end_ms;
-} DispatchAnimation;
+extern char input_text[];
+static char log_buffer[MAX_LOG_LINES][128];
+static int log_count = 0;
+static int log_scroll_offset = 0; 
 
-static int point_in_rect(int x, int y, SDL_Rect rect) {
-    return x >= rect.x && x < (rect.x + rect.w) && y >= rect.y && y < (rect.y + rect.h);
-}
+char input_text[MAX_INPUT_LEN] = "";
+bool is_waiting_for_input = false;
+bool input_focused = false; 
+bool input_submitted = false; // NEW FLAG: Tells the OS the text is ready
+char alert_reason[128] = "";
 
-static void fill_rect(SDL_Renderer *renderer, SDL_Rect rect, SDL_Color color) {
-    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
-    SDL_RenderFillRect(renderer, &rect);
-}
-
-static void stroke_rect(SDL_Renderer *renderer, SDL_Rect rect, SDL_Color color) {
-    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
-    SDL_RenderDrawRect(renderer, &rect);
-}
-
-static void draw_text(SDL_Renderer *renderer,
-                      TTF_Font *font,
-                      int x,
-                      int y,
-                      SDL_Color color,
-                      const char *text) {
-    SDL_Surface *surface;
-    SDL_Texture *texture;
-    SDL_Rect dst;
-
-    if (!font || !text) {
-        return;
+void gui_log(const char *format, ...) {
+    if (log_count >= MAX_LOG_LINES) return;
+    va_list args;
+    va_start(args, format);
+    vsnprintf(log_buffer[log_count], 128, format, args);
+    va_end(args);
+    
+    if (strstr(log_buffer[log_count], "goint to take input") != NULL || 
+        strstr(log_buffer[log_count], "Enter input:") != NULL) {
+        
+        is_waiting_for_input = true;
+        snprintf(alert_reason, sizeof(alert_reason), "%s", log_buffer[log_count]);
     }
-
-    surface = TTF_RenderUTF8_Blended(font, text, color);
-    if (!surface) {
-        return;
-    }
-
-    texture = SDL_CreateTextureFromSurface(renderer, surface);
-    if (!texture) {
-        SDL_FreeSurface(surface);
-        return;
-    }
-
-    dst.x = x;
-    dst.y = y;
-    dst.w = surface->w;
-    dst.h = surface->h;
-    SDL_RenderCopy(renderer, texture, NULL, &dst);
-    SDL_DestroyTexture(texture);
-    SDL_FreeSurface(surface);
+    
+    log_count++;
+    log_scroll_offset = 0; 
 }
 
-static void draw_button(SDL_Renderer *renderer,
-                        TTF_Font *font,
-                        UIButton button,
-                        int mouse_x,
-                        int mouse_y,
-                        SDL_Color base,
-                        SDL_Color hover,
-                        SDL_Color text_color) {
-    SDL_Color fill = point_in_rect(mouse_x, mouse_y, button.rect) ? hover : base;
-    fill_rect(renderer, button.rect, fill);
-    stroke_rect(renderer, button.rect, (SDL_Color){12, 20, 36, 255});
-    draw_text(renderer, font, button.rect.x + 14, button.rect.y + 10, text_color, button.label);
+static void fill_rect(SDL_Renderer *r, SDL_Rect rect, SDL_Color c) {
+    SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
+    SDL_RenderFillRect(r, &rect);
 }
 
-static void draw_value_card(SDL_Renderer *renderer,
-                            TTF_Font *title_font,
-                            TTF_Font *value_font,
-                            SDL_Rect rect,
-                            const char *title,
-                            const char *value,
-                            SDL_Color accent) {
-    SDL_Rect stripe = {rect.x, rect.y, 8, rect.h};
-    fill_rect(renderer, rect, (SDL_Color){41, 54, 80, 255});
-    fill_rect(renderer, stripe, accent);
-    stroke_rect(renderer, rect, (SDL_Color){85, 104, 140, 255});
-    draw_text(renderer, title_font, rect.x + 18, rect.y + 14, (SDL_Color){174, 193, 226, 255}, title);
-    draw_text(renderer, value_font, rect.x + 18, rect.y + 40, (SDL_Color){227, 238, 255, 255}, value);
+static void stroke_rect(SDL_Renderer *r, SDL_Rect rect, SDL_Color c) {
+    SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
+    SDL_RenderDrawRect(r, &rect);
 }
 
-static void draw_queue_card(SDL_Renderer *renderer,
-                            TTF_Font *title_font,
-                            TTF_Font *value_font,
-                            SDL_Rect rect,
-                            const char *title,
-                            int value,
-                            SDL_Color accent) {
-    char value_text[24];
-    snprintf(value_text, sizeof(value_text), "%d", value);
-    draw_value_card(renderer, title_font, value_font, rect, title, value_text, accent);
+static void draw_text(SDL_Renderer *r, TTF_Font *f, int x, int y, SDL_Color c, const char *t) {
+    if (!f || !t || t[0] == '\0') return;
+    SDL_Surface *s = TTF_RenderUTF8_Blended(f, t, c);
+    if (!s) return;
+    SDL_Texture *tex = SDL_CreateTextureFromSurface(r, s);
+    SDL_Rect d = {x, y, s->w, s->h};
+    SDL_RenderCopy(r, tex, NULL, &d);
+    SDL_DestroyTexture(tex);
+    SDL_FreeSurface(s);
 }
 
-static void draw_pid_blocks_in_queue(SDL_Renderer *renderer,
-                                     TTF_Font *font,
-                                     SDL_Rect rect,
-                                     Queue *queue,
-                                     SDL_Color block_color,
-                                     SDL_Color text_color) {
-    QueueNode *node;
-    int idx = 0;
-    int x;
-    int y;
-    int block_w;
-    int block_h;
-    int step_x;
-    int step_y;
-    int text_offset_y;
-    int limit = 10;
+static void draw_button(SDL_Renderer *r, TTF_Font *f, SDL_Rect rect, const char *label, SDL_Color bg, bool is_active) {
+    fill_rect(r, rect, bg);
+    if (is_active) stroke_rect(r, rect, C_TEXT); 
+    draw_text(r, f, rect.x + 15, rect.y + 10, C_BG, label);
+}
 
-    if (!queue) {
-        return;
-    }
+static void draw_queue_visualized(SDL_Renderer *r, TTF_Font *title_font, TTF_Font *box_font, SDL_Rect rect, const char *title, Queue *queues[], int num_queues, SDL_Color accent) {
+    fill_rect(r, rect, C_PANEL);
+    fill_rect(r, (SDL_Rect){rect.x, rect.y, 8, rect.h}, accent);
+    draw_text(r, title_font, rect.x + 20, rect.y + 10, C_TEXT, title);
+    
+    int total_size = 0;
+    for (int i = 0; i < num_queues; i++) total_size += queues[i]->size;
 
-    node = queue->head;
-    block_w = 52;
-    block_h = (rect.h < 86) ? 24 : 30;
-    step_x = block_w + 8;
-    step_y = block_h + 6;
-    text_offset_y = (block_h == 24) ? 3 : 6;
-    x = rect.x + 12;
-    y = rect.y + ((rect.h < 86) ? 40 : 52);
+    char count_str[16];
+    snprintf(count_str, sizeof(count_str), "%d", total_size);
+    draw_text(r, title_font, rect.x + rect.w - 30, rect.y + 10, accent, count_str);
 
-    while (node && idx < limit) {
-        SDL_Rect pid_block;
-        char pid_text[24];
+    int px = rect.x + 20;
+    int py = rect.y + 45;
 
-        pid_block.x = x;
-        pid_block.y = y;
-        pid_block.w = block_w;
-        pid_block.h = block_h;
+    for (int i = 0; i < num_queues; i++) {
+        if (!queues[i] || !queues[i]->head) continue;
+        QueueNode *curr = queues[i]->head;
+        
+        while (curr) {
+            if (px + 50 > rect.x + rect.w - 10) { px = rect.x + 20; py += 55; }
+            if (py + 45 > rect.y + rect.h) break; 
 
-        fill_rect(renderer, pid_block, block_color);
-        stroke_rect(renderer, pid_block, (SDL_Color){20, 32, 48, 255});
-        snprintf(pid_text, sizeof(pid_text), "P%d", node->process->pcb->pid);
-        draw_text(renderer, font, pid_block.x + 10, pid_block.y + text_offset_y, text_color, pid_text);
+            SDL_Rect p_box = {px, py, 45, 45};
+            fill_rect(r, p_box, C_BG);
+            stroke_rect(r, p_box, accent);
 
-        x += step_x;
-        if (x + block_w > rect.x + rect.w - 10) {
-            x = rect.x + 12;
-            y += step_y;
+            char p_lbl[8];
+            snprintf(p_lbl, sizeof(p_lbl), "P%d", curr->process->pcb->pid);
+            draw_text(r, box_font, px + 10, py + 12, C_TEXT, p_lbl);
+
+            px += 55;
+            curr = curr->next;
         }
-
-        node = node->next;
-        idx++;
-    }
-
-    if (queue->size == 0) {
-        int empty_y = rect.y + rect.h / 2 - 8;
-        if (empty_y < rect.y + 34) {
-            empty_y = rect.y + 34;
-        }
-        draw_text(renderer, font, rect.x + 14, empty_y, (SDL_Color){102, 118, 143, 255}, "Empty");
-    } else if (queue->size > limit) {
-        char more_text[32];
-        snprintf(more_text, sizeof(more_text), "+%d more", queue->size - limit);
-        draw_text(renderer, font, rect.x + 14, rect.y + rect.h - 24, (SDL_Color){88, 104, 134, 255}, more_text);
-    }
-}
-
-static void draw_queue_lane(SDL_Renderer *renderer,
-                            TTF_Font *title_font,
-                            TTF_Font *value_font,
-                            SDL_Rect rect,
-                            const char *title,
-                            Queue *queue,
-                            SDL_Color accent,
-                            SDL_Color block_color,
-                            SDL_Color text_color) {
-    char count_text[24];
-    SDL_Rect stripe = {rect.x, rect.y, 8, rect.h};
-
-    fill_rect(renderer, rect, (SDL_Color){41, 54, 80, 255});
-    fill_rect(renderer, stripe, accent);
-    stroke_rect(renderer, rect, (SDL_Color){85, 104, 140, 255});
-    draw_text(renderer, title_font, rect.x + 16, rect.y + 12, (SDL_Color){174, 193, 226, 255}, title);
-
-    snprintf(count_text, sizeof(count_text), "%d", queue ? queue->size : 0);
-    draw_text(renderer, value_font, rect.x + rect.w - 38, rect.y + 10, (SDL_Color){227, 238, 255, 255}, count_text);
-
-    draw_pid_blocks_in_queue(renderer, title_font, rect, queue, block_color, text_color);
-}
-
-static int handle_button_click(SDL_Event *event, UIButton button) {
-    if (event->type != SDL_MOUSEBUTTONDOWN || event->button.button != SDL_BUTTON_LEFT) {
-        return 0;
-    }
-    return point_in_rect(event->button.x, event->button.y, button.rect);
-}
-
-static void build_program_path(const char *name, char *out, size_t out_size) {
-    if (strchr(name, '/') || strchr(name, '\\')) {
-        snprintf(out, out_size, "%s", name);
-        return;
-    }
-    snprintf(out, out_size, "src/programs/%s", name);
-}
-
-static void load_due_programs(ProgramSpec *programs, int count) {
-    int clock = os_get_clock();
-    int i;
-
-    for (i = 0; i < count; i++) {
-        if (!programs[i].loaded && programs[i].arrival == clock) {
-            char path[512];
-            build_program_path(programs[i].name, path, sizeof(path));
-            loadAndInterpret(path, programs[i].arrival);
-            programs[i].loaded = 1;
-        }
-    }
-
-    flush_pending_rr_process();
-}
-
-static int all_programs_loaded(const ProgramSpec *programs, int count) {
-    int i;
-    for (i = 0; i < count; i++) {
-        if (!programs[i].loaded) {
-            return 0;
-        }
-    }
-    return 1;
-}
-
-static const char *algo_name(SchedulerAlgorithm algorithm) {
-    switch (algorithm) {
-        case RR: return "RR";
-        case HRRN: return "HRRN";
-        case MLFQ: return "MLFQ";
-        default: return "Unknown";
-    }
-}
-
-static int get_dispatch_source_lane(SchedulerAlgorithm algorithm) {
-    int i;
-    if (algorithm == MLFQ) {
-        for (i = 0; i < 4; i++) {
-            if (mlfq_queues[i].size > 0) {
-                return i;
-            }
-        }
-        return 0;
-    }
-    return 0;
-}
-
-static Queue *queue_for_lane(SchedulerAlgorithm algorithm, int lane_index) {
-    if (algorithm == MLFQ) {
-        if (lane_index >= 0 && lane_index < 4) {
-            return &mlfq_queues[lane_index];
-        }
-        return NULL;
-    }
-
-    if (lane_index == 0) {
-        return &os_ready_queue;
-    }
-    if (lane_index == 1) {
-        return &general_blocked_queue;
-    }
-    return NULL;
-}
-
-static void reset_simulation(ProgramSpec *programs,
-                             int count,
-                             SchedulerAlgorithm algorithm,
-                             bool *initialized,
-                             int *last_dispatched_pid,
-                             DispatchAnimation *anim) {
-    int i;
-    os_pause();
-    os_init(algorithm);
-
-    for (i = 0; i < count; i++) {
-        programs[i].loaded = 0;
-    }
-
-    *initialized = true;
-    *last_dispatched_pid = -1;
-    anim->active = 0;
-}
-
-static void perform_single_tick(ProgramSpec *programs,
-                                int count,
-                                SchedulerAlgorithm algorithm,
-                                DispatchAnimation *anim,
-                                SDL_Rect queue_lanes[],
-                                SDL_Rect kernel_rect,
-                                int *last_dispatched_pid) {
-    OSSnapshot snapshot;
-    int source_lane;
-
-    load_due_programs(programs, count);
-    if (all_programs_loaded(programs, count) && os_is_idle()) {
-        return;
-    }
-
-    source_lane = get_dispatch_source_lane(algorithm);
-    os_step();
-    snapshot = os_get_snapshot();
-
-    if (snapshot.current_pid != -1 && snapshot.current_pid != *last_dispatched_pid) {
-        anim->active = 1;
-        anim->pid = snapshot.current_pid;
-        anim->start_x = queue_lanes[source_lane].x + queue_lanes[source_lane].w / 2;
-        anim->start_y = queue_lanes[source_lane].y + queue_lanes[source_lane].h;
-        anim->end_x = kernel_rect.x + kernel_rect.w / 2;
-        anim->end_y = kernel_rect.y + 44;
-        anim->start_ms = SDL_GetTicks();
-        anim->end_ms = anim->start_ms + 700;
-        *last_dispatched_pid = snapshot.current_pid;
     }
 }
 
 int main(int argc, char **argv) {
-    ProgramSpec programs[] = {
-        {"Program_1.txt", 0, 0},
-        {"Program_2.txt", 1, 0},
-        {"Program_3.txt", 4, 0}
-    };
+
+    
     SchedulerAlgorithm selected_algo = HRRN;
-    bool initialized = false;
-    bool running = true;
-    int mouse_x = 0;
-    int mouse_y = 0;
-    int last_dispatched_pid = -1;
-    DispatchAnimation dispatch_anim = {0};
+    bool initialized = false, running = true;
 
-    UIButton init_button = {{36, 84, 130, 42}, "Init"};
-    UIButton reset_button = {{176, 84, 130, 42}, "Reset"};
-    UIButton step_button = {{316, 84, 110, 42}, "Step"};
-    UIButton rr_chip = {{760, 86, 90, 38}, "RR"};
-    UIButton hrrn_chip = {{858, 86, 90, 38}, "HRRN"};
-    UIButton mlfq_chip = {{956, 86, 90, 38}, "MLFQ"};
+    SDL_Init(SDL_INIT_VIDEO);
+    TTF_Init();
+    SDL_Window *win = SDL_CreateWindow("OStor OS Pro", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1200, 850, 0);
+    SDL_Renderer *ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
 
-    SDL_Rect queue_lanes[4] = {
-        {70, 250, 500, 72},
-        {610, 250, 500, 72},
-        {70, 332, 500, 72},
-        {610, 332, 500, 72}
-    };
-    SDL_Rect kernel_rect = {50, 475, 1100, 170};
+    TTF_Font *f_sml = TTF_OpenFont("assets/font.ttf", 14);
+    TTF_Font *f_reg = TTF_OpenFont("assets/font.ttf", 18);
+    TTF_Font *f_bold = TTF_OpenFont("assets/font.ttf", 24);
 
-    SDL_Window *window;
-    SDL_Renderer *renderer;
-    TTF_Font *font_regular;
-    TTF_Font *font_small;
-    TTF_Font *font_large;
+    if (!f_reg) { printf("CRITICAL: font.ttf missing from assets folder.\n"); return 1; }
 
-    (void)argc;
-    (void)argv;
+    SDL_Rect btn_rr = {50, 80, 100, 40};
+    SDL_Rect btn_hr = {160, 80, 100, 40};
+    SDL_Rect btn_ml = {270, 80, 100, 40};
+    SDL_Rect btn_step = {1050, 80, 100, 40};
+    SDL_Rect input_bar = {50, 770, 1100, 50}; 
+    SDL_Rect term_rect = {50, 430, 1100, 320}; 
 
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
-        printf("SDL_Init failed: %s\n", SDL_GetError());
-        return 1;
-    }
-    if (TTF_Init() != 0) {
-        printf("TTF_Init failed: %s\n", TTF_GetError());
-        SDL_Quit();
-        return 1;
-    }
-
-    window = SDL_CreateWindow("OS Simulator GUI (SDL2)",
-                              SDL_WINDOWPOS_CENTERED,
-                              SDL_WINDOWPOS_CENTERED,
-                              1180,
-                              740,
-                              SDL_WINDOW_SHOWN);
-    if (!window) {
-        printf("SDL_CreateWindow failed: %s\n", SDL_GetError());
-        TTF_Quit();
-        SDL_Quit();
-        return 1;
-    }
-
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-    if (!renderer) {
-        printf("SDL_CreateRenderer failed: %s\n", SDL_GetError());
-        SDL_DestroyWindow(window);
-        TTF_Quit();
-        SDL_Quit();
-        return 1;
-    }
-
-    font_regular = TTF_OpenFont("C:/Windows/Fonts/segoeui.ttf", 18);
-    font_small = TTF_OpenFont("C:/Windows/Fonts/segoeui.ttf", 15);
-    font_large = TTF_OpenFont("C:/Windows/Fonts/segoeui.ttf", 26);
-    if (!font_regular || !font_small || !font_large) {
-        printf("Font load failed: %s\n", TTF_GetError());
-        if (font_regular) TTF_CloseFont(font_regular);
-        if (font_small) TTF_CloseFont(font_small);
-        if (font_large) TTF_CloseFont(font_large);
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        TTF_Quit();
-        SDL_Quit();
-        return 1;
-    }
-
-    printf("SDL2 controls:\n");
-    printf("  I: init\n");
-    printf("  R: reset\n");
-    printf("  1/2/3: select RR/HRRN/MLFQ\n");
-    printf("  N: single step\n");
-    printf("  ESC or window close: exit\n");
+    gui_log(">> System Online. Click an algorithm (RR, HRRN, MLFQ) to begin.");
+    SDL_StopTextInput(); 
 
     while (running) {
-        SDL_Event event;
-        OSSnapshot snapshot = {0};
-        int simulation_completed = 0;
-
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                running = false;
-            }
-
-            if (handle_button_click(&event, rr_chip)) {
-                selected_algo = RR;
-                if (initialized) {
-                    reset_simulation(programs, 3, selected_algo, &initialized, &last_dispatched_pid, &dispatch_anim);
-                }
-            }
-            if (handle_button_click(&event, hrrn_chip)) {
-                selected_algo = HRRN;
-                if (initialized) {
-                    reset_simulation(programs, 3, selected_algo, &initialized, &last_dispatched_pid, &dispatch_anim);
-                }
-            }
-            if (handle_button_click(&event, mlfq_chip)) {
-                selected_algo = MLFQ;
-                if (initialized) {
-                    reset_simulation(programs, 3, selected_algo, &initialized, &last_dispatched_pid, &dispatch_anim);
+        SDL_Event ev;
+        while (SDL_PollEvent(&ev)) {
+            if (ev.type == SDL_QUIT) running = false;
+            
+            if (ev.type == SDL_MOUSEWHEEL) {
+                int mx, my;
+                SDL_GetMouseState(&mx, &my);
+                
+                if (mx >= term_rect.x && mx <= term_rect.x + term_rect.w && 
+                    my >= term_rect.y && my <= term_rect.y + term_rect.h) {
+                    
+                    int max_scroll = (log_count > VISIBLE_LINES) ? log_count - VISIBLE_LINES : 0;
+                    log_scroll_offset -= ev.wheel.y; 
+                    
+                    if (log_scroll_offset < 0) log_scroll_offset = 0;
+                    if (log_scroll_offset > max_scroll) log_scroll_offset = max_scroll;
                 }
             }
 
-            if (handle_button_click(&event, init_button)) {
-                reset_simulation(programs, 3, selected_algo, &initialized, &last_dispatched_pid, &dispatch_anim);
+            if (ev.type == SDL_MOUSEBUTTONDOWN && ev.button.button == SDL_BUTTON_LEFT) {
+                int mx = ev.button.x, my = ev.button.y;
+                
+                if (mx >= input_bar.x && mx <= input_bar.x + input_bar.w && my >= input_bar.y && my <= input_bar.y + input_bar.h) {
+                    input_focused = true;
+                    SDL_StartTextInput();
+                } else {
+                    input_focused = false;
+                    SDL_StopTextInput();
+                }
+
+                if (mx >= btn_rr.x && mx <= btn_rr.x + btn_rr.w && my >= btn_rr.y && my <= btn_rr.y + btn_rr.h) { 
+                    selected_algo = RR; os_init(RR); initialized = true; gui_log(">> Init: Round Robin"); 
+                }
+                if (mx >= btn_hr.x && mx <= btn_hr.x + btn_hr.w && my >= btn_hr.y && my <= btn_hr.y + btn_hr.h) { 
+                    selected_algo = HRRN; os_init(HRRN); initialized = true; gui_log(">> Init: HRRN"); 
+                }
+                if (mx >= btn_ml.x && mx <= btn_ml.x + btn_ml.w && my >= btn_ml.y && my <= btn_ml.y + btn_ml.h) { 
+                    selected_algo = MLFQ; os_init(MLFQ); initialized = true; gui_log(">> Init: MLFQ"); 
+                }
+                
+                if (mx >= btn_step.x && mx <= btn_step.x + btn_step.w && my >= btn_step.y && my <= btn_step.y + btn_step.h && initialized) {
+                    os_step();
+                    gui_log("Tick %d: Step executed.", os_get_clock());
+                }
             }
-
-            if (initialized && handle_button_click(&event, reset_button)) {
-                reset_simulation(programs, 3, selected_algo, &initialized, &last_dispatched_pid, &dispatch_anim);
-            }
-
-            if (initialized && handle_button_click(&event, step_button)) {
-                perform_single_tick(programs,
-                                    3,
-                                    selected_algo,
-                                    &dispatch_anim,
-                                    queue_lanes,
-                                    kernel_rect,
-                                    &last_dispatched_pid);
-            }
-
-            if (event.type == SDL_KEYDOWN) {
-                SDL_Keycode key = event.key.keysym.sym;
-
-                if (key == SDLK_ESCAPE) running = false;
-
-                if (key == SDLK_1) {
-                    selected_algo = RR;
-                    if (initialized) {
-                        reset_simulation(programs, 3, selected_algo, &initialized, &last_dispatched_pid, &dispatch_anim);
+            
+            if (input_focused) {
+                if (ev.type == SDL_TEXTINPUT) {
+                    if (strlen(input_text) + strlen(ev.text.text) < MAX_INPUT_LEN - 1) {
+                        strcat(input_text, ev.text.text);
                     }
                 }
-                if (key == SDLK_2) {
-                    selected_algo = HRRN;
-                    if (initialized) {
-                        reset_simulation(programs, 3, selected_algo, &initialized, &last_dispatched_pid, &dispatch_anim);
+                if (ev.type == SDL_KEYDOWN) {
+                    if (ev.key.keysym.sym == SDLK_BACKSPACE && strlen(input_text) > 0) {
+                        input_text[strlen(input_text)-1] = '\0';
                     }
-                }
-                if (key == SDLK_3) {
-                    selected_algo = MLFQ;
-                    if (initialized) {
-                        reset_simulation(programs, 3, selected_algo, &initialized, &last_dispatched_pid, &dispatch_anim);
+                    if (ev.key.keysym.sym == SDLK_RETURN && strlen(input_text) > 0) {
+                        if (is_waiting_for_input) {
+                            gui_log("Input Captured: %s", input_text);
+                            input_submitted = true; // Raise the flag for the OS!
+                            is_waiting_for_input = false; // Hide the alert box
+                        } else {
+                            gui_log("LOAD_CMD: %s", input_text);
+                            char path[512];
+                            snprintf(path, sizeof(path), "src/programs/%s", input_text);
+                            loadAndInterpret(path, os_get_clock());
+                            input_text[0] = '\0'; 
+                        }
                     }
-                }
-
-                if (key == SDLK_i) {
-                    reset_simulation(programs, 3, selected_algo, &initialized, &last_dispatched_pid, &dispatch_anim);
-                }
-                if (key == SDLK_r && initialized) {
-                    reset_simulation(programs, 3, selected_algo, &initialized, &last_dispatched_pid, &dispatch_anim);
-                }
-
-                if (initialized && key == SDLK_n) {
-                    perform_single_tick(programs,
-                                        3,
-                                        selected_algo,
-                                        &dispatch_anim,
-                                        queue_lanes,
-                                        kernel_rect,
-                                        &last_dispatched_pid);
                 }
             }
         }
 
-        SDL_GetMouseState(&mouse_x, &mouse_y);
-        snapshot = initialized ? os_get_snapshot() : (OSSnapshot){0};
-        simulation_completed = initialized && all_programs_loaded(programs, 3) && os_is_idle();
+        fill_rect(ren, (SDL_Rect){0, 0, 1200, 850}, C_BG);
+        draw_text(ren, f_bold, 50, 30, C_ACCENT, "OSTOR OS DASHBOARD v3.7");
+        
+        draw_button(ren, f_reg, btn_rr, "RR", C_ACCENT, selected_algo == RR);
+        draw_button(ren, f_reg, btn_hr, "HRRN", C_ACCENT, selected_algo == HRRN);
+        draw_button(ren, f_reg, btn_ml, "MLFQ", C_ACCENT, selected_algo == MLFQ);
+        draw_button(ren, f_reg, btn_step, "STEP", C_GREEN, false);
 
-        SDL_SetRenderDrawColor(renderer, 16, 20, 32, 255);
-        SDL_RenderClear(renderer);
-
-        fill_rect(renderer, (SDL_Rect){20, 16, 1140, 700}, (SDL_Color){21, 27, 44, 255});
-        stroke_rect(renderer, (SDL_Rect){20, 16, 1140, 700}, (SDL_Color){41, 56, 88, 255});
-
-        draw_text(renderer, font_large, 36, 24, (SDL_Color){122, 204, 255, 255}, "OStor yarab's OS");
-        draw_text(renderer, font_small, 36, 56, (SDL_Color){147, 168, 201, 255}, "Manual tick simulation mode");
-
-        draw_button(renderer, font_regular, init_button, mouse_x, mouse_y,
-                    (SDL_Color){58, 187, 137, 255}, (SDL_Color){76, 210, 156, 255}, (SDL_Color){8, 22, 20, 255});
-        draw_button(renderer, font_regular, reset_button, mouse_x, mouse_y,
-                    (SDL_Color){226, 163, 84, 255}, (SDL_Color){242, 184, 112, 255}, (SDL_Color){34, 24, 8, 255});
-        draw_button(renderer, font_regular, step_button, mouse_x, mouse_y,
-                    (SDL_Color){103, 156, 255, 255}, (SDL_Color){129, 175, 255, 255}, (SDL_Color){10, 20, 42, 255});
-
-        {
-            SDL_Rect *active_chip = NULL;
-            fill_rect(renderer, rr_chip.rect, selected_algo == RR ? (SDL_Color){96, 175, 255, 255} : (SDL_Color){61, 78, 108, 255});
-            fill_rect(renderer, hrrn_chip.rect, selected_algo == HRRN ? (SDL_Color){96, 175, 255, 255} : (SDL_Color){61, 78, 108, 255});
-            fill_rect(renderer, mlfq_chip.rect, selected_algo == MLFQ ? (SDL_Color){96, 175, 255, 255} : (SDL_Color){61, 78, 108, 255});
-            stroke_rect(renderer, rr_chip.rect, (SDL_Color){95, 116, 151, 255});
-            stroke_rect(renderer, hrrn_chip.rect, (SDL_Color){95, 116, 151, 255});
-            stroke_rect(renderer, mlfq_chip.rect, (SDL_Color){95, 116, 151, 255});
-            draw_text(renderer, font_regular, rr_chip.rect.x + 26, rr_chip.rect.y + 9,
-                      selected_algo == RR ? (SDL_Color){255, 255, 255, 255} : (SDL_Color){215, 226, 246, 255}, "RR");
-            draw_text(renderer, font_regular, hrrn_chip.rect.x + 18, hrrn_chip.rect.y + 9,
-                      selected_algo == HRRN ? (SDL_Color){255, 255, 255, 255} : (SDL_Color){215, 226, 246, 255}, "HRRN");
-            draw_text(renderer, font_regular, mlfq_chip.rect.x + 17, mlfq_chip.rect.y + 9,
-                      selected_algo == MLFQ ? (SDL_Color){255, 255, 255, 255} : (SDL_Color){215, 226, 246, 255}, "MLFQ");
-
-            if (selected_algo == RR) active_chip = &rr_chip.rect;
-            if (selected_algo == HRRN) active_chip = &hrrn_chip.rect;
-            if (selected_algo == MLFQ) active_chip = &mlfq_chip.rect;
-
-            if (active_chip) {
-                SDL_Rect glow = {active_chip->x - 2, active_chip->y - 2, active_chip->w + 4, active_chip->h + 4};
-                stroke_rect(renderer, glow, (SDL_Color){39, 132, 241, 255});
-            }
-        }
-
-        {
-            char clock_value[24];
-            char pid_value[24];
-            char state_value[32];
-            int display_pid = simulation_completed ? -1 : snapshot.current_pid;
-
-            snprintf(clock_value, sizeof(clock_value), "%d", snapshot.clock_tick);
-            snprintf(pid_value, sizeof(pid_value), "%d", display_pid);
-            snprintf(state_value, sizeof(state_value), "%s", initialized ? "READY" : "NOT INIT");
-            if (simulation_completed) {
-                snprintf(state_value, sizeof(state_value), "%s", "COMPLETED");
-            }
-
-            draw_value_card(renderer, font_small, font_regular, (SDL_Rect){36, 136, 260, 80}, "Clock", clock_value, (SDL_Color){84, 162, 255, 255});
-            draw_value_card(renderer, font_small, font_regular, (SDL_Rect){312, 136, 260, 80}, "Running PID", pid_value, (SDL_Color){102, 210, 164, 255});
-            draw_value_card(renderer, font_small, font_regular, (SDL_Rect){588, 136, 260, 80}, "Algorithm", algo_name(selected_algo), (SDL_Color){241, 189, 107, 255});
-            draw_value_card(renderer, font_small, font_regular, (SDL_Rect){864, 136, 268, 80}, "State", state_value, (SDL_Color){180, 156, 255, 255});
-        }
-
+        Queue *ready_qs[4];
+        int num_ready = 1;
         if (selected_algo == MLFQ) {
-            SDL_Rect mlfq_blocked_rect = {70, 414, 1040, 53};
-
-            queue_lanes[0] = (SDL_Rect){70, 250, 500, 72};
-            queue_lanes[1] = (SDL_Rect){610, 250, 500, 72};
-            queue_lanes[2] = (SDL_Rect){70, 332, 500, 72};
-            queue_lanes[3] = (SDL_Rect){610, 332, 500, 72};
-
-            draw_queue_lane(renderer, font_small, font_regular, queue_lanes[0], "Queue 0", &mlfq_queues[0], (SDL_Color){80, 180, 255, 255}, (SDL_Color){147, 220, 255, 255}, (SDL_Color){16, 43, 68, 255});
-            draw_queue_lane(renderer, font_small, font_regular, queue_lanes[1], "Queue 1", &mlfq_queues[1], (SDL_Color){104, 198, 167, 255}, (SDL_Color){160, 233, 205, 255}, (SDL_Color){17, 61, 48, 255});
-            draw_queue_lane(renderer, font_small, font_regular, queue_lanes[2], "Queue 2", &mlfq_queues[2], (SDL_Color){245, 182, 97, 255}, (SDL_Color){255, 221, 170, 255}, (SDL_Color){83, 48, 14, 255});
-            draw_queue_lane(renderer, font_small, font_regular, queue_lanes[3], "Queue 3", &mlfq_queues[3], (SDL_Color){233, 129, 118, 255}, (SDL_Color){255, 193, 186, 255}, (SDL_Color){85, 35, 31, 255});
-            draw_queue_lane(renderer, font_small, font_regular, mlfq_blocked_rect, "Blocked Queue", &general_blocked_queue, (SDL_Color){232, 123, 109, 255}, (SDL_Color){250, 184, 174, 255}, (SDL_Color){78, 31, 27, 255});
+            ready_qs[0] = &mlfq_queues[0]; ready_qs[1] = &mlfq_queues[1];
+            ready_qs[2] = &mlfq_queues[2]; ready_qs[3] = &mlfq_queues[3];
+            num_ready = 4;
         } else {
-            SDL_Rect ready_rect = {120, 250, 440, 140};
-            SDL_Rect blocked_rect = {620, 250, 440, 140};
+            ready_qs[0] = &os_ready_queue;
+        }
+        
+        draw_queue_visualized(ren, f_reg, f_sml, (SDL_Rect){50, 140, 530, 140}, "READY QUEUE", ready_qs, num_ready, C_GREEN);
+        
+        Queue *blocked_qs[1] = {&general_blocked_queue};
+        draw_queue_visualized(ren, f_reg, f_sml, (SDL_Rect){620, 140, 530, 140}, "BLOCKED QUEUE", blocked_qs, 1, C_RED);
 
-            queue_lanes[0] = ready_rect;
-            queue_lanes[1] = blocked_rect;
-
-            draw_queue_lane(renderer, font_small, font_regular, ready_rect, "Ready Queue", &os_ready_queue, (SDL_Color){98, 173, 255, 255}, (SDL_Color){149, 210, 255, 255}, (SDL_Color){16, 43, 68, 255});
-            draw_queue_lane(renderer, font_small, font_regular, blocked_rect, "Blocked Queue", &general_blocked_queue, (SDL_Color){232, 123, 109, 255}, (SDL_Color){250, 184, 174, 255}, (SDL_Color){78, 31, 27, 255});
+        SDL_Rect kernel_rect = {50, 290, 1100, 120};
+        fill_rect(ren, kernel_rect, C_PANEL);
+        stroke_rect(ren, kernel_rect, C_ACCENT);
+        draw_text(ren, f_bold, 70, 310, C_ACCENT, "KERNEL EXECUTION");
+        
+        OSSnapshot snap = os_get_snapshot();
+        char k_stat[128];
+        if (snap.current_pid != -1) {
+            snprintf(k_stat, sizeof(k_stat), "Running PID: %d | System Clock: %d", snap.current_pid, snap.clock_tick);
+            draw_text(ren, f_reg, 70, 350, C_GREEN, k_stat);
+        } else {
+            snprintf(k_stat, sizeof(k_stat), "CPU Idle | System Clock: %d", snap.clock_tick);
+            draw_text(ren, f_reg, 70, 350, C_TEXT, k_stat);
         }
 
-        fill_rect(renderer, kernel_rect, (SDL_Color){20, 39, 34, 255});
-        stroke_rect(renderer, kernel_rect, (SDL_Color){73, 198, 155, 255});
-        draw_text(renderer, font_large, kernel_rect.x + 24, kernel_rect.y + 18, (SDL_Color){120, 245, 209, 255}, "Kernel");
+        fill_rect(ren, term_rect, (SDL_Color){17, 17, 27, 255}); 
+        stroke_rect(ren, term_rect, C_TEXT);
 
-        {
-            int kernel_pid = simulation_completed ? -1 : snapshot.current_pid;
+        int max_scroll = (log_count > VISIBLE_LINES) ? log_count - VISIBLE_LINES : 0;
+        int base_idx = max_scroll - log_scroll_offset;
+        if (base_idx < 0) base_idx = 0;
 
-            if (kernel_pid != -1) {
-                SDL_Rect running_block = {kernel_rect.x + 34, kernel_rect.y + 72, 140, 64};
-                SDL_Rect glow = {running_block.x - 4, running_block.y - 4, running_block.w + 8, running_block.h + 8};
-                char kernel_pid_text[32];
+        for (int i = 0; i < VISIBLE_LINES && (base_idx + i) < log_count; i++) {
+            draw_text(ren, f_sml, 70, 445 + (i * 28), C_TEXT, log_buffer[base_idx + i]);
+        }
+        
+        if (max_scroll > 0) {
+            char scroll_lbl[32];
+            snprintf(scroll_lbl, sizeof(scroll_lbl), "Scroll: %d", log_scroll_offset);
+            draw_text(ren, f_sml, 1050, 445, C_INACTIVE, scroll_lbl);
+        }
 
-                fill_rect(renderer, glow, (SDL_Color){26, 86, 70, 255});
-                fill_rect(renderer, running_block, (SDL_Color){125, 229, 193, 255});
-                stroke_rect(renderer, running_block, (SDL_Color){19, 72, 58, 255});
-                snprintf(kernel_pid_text, sizeof(kernel_pid_text), "PID %d", kernel_pid);
-                draw_text(renderer, font_regular, running_block.x + 28, running_block.y + 20, (SDL_Color){16, 59, 45, 255}, kernel_pid_text);
-                draw_text(renderer, font_small, running_block.x + 176, running_block.y + 22, (SDL_Color){205, 246, 234, 255}, "Executing in kernel");
+        SDL_Color bg_color = input_focused ? C_PANEL : C_INACTIVE;
+        fill_rect(ren, input_bar, bg_color);
+        if (input_focused) stroke_rect(ren, input_bar, C_ACCENT); 
+        
+        SDL_Color prompt_col = is_waiting_for_input ? C_RED : C_YELLOW;
+        const char* prompt_text = is_waiting_for_input ? "AWAITING INPUT > " : "FILE TO LOAD > ";
+        
+        draw_text(ren, f_reg, 70, 785, prompt_col, prompt_text);
+        draw_text(ren, f_reg, 260, 785, C_TEXT, input_text);
+
+        if (input_focused && (SDL_GetTicks() / 500) % 2) {
+            int cur_x = 260 + (strlen(input_text) * 10); 
+            fill_rect(ren, (SDL_Rect){cur_x, 785, 2, 20}, C_TEXT);
+        }
+
+        if (is_waiting_for_input) {
+            SDL_Rect alert_box = {250, 350, 700, 120};
+            
+            if (!input_focused) {
+                fill_rect(ren, alert_box, C_RED);
+                stroke_rect(ren, alert_box, C_TEXT);
+                draw_text(ren, f_bold, 280, 360, C_BG, "ACTION REQUIRED: AWAITING INPUT");
+                draw_text(ren, f_reg, 280, 400, C_BG, alert_reason); 
+                draw_text(ren, f_sml, 280, 430, C_BG, "-> Click the text box below, type your data, and press ENTER");
             } else {
-                draw_text(renderer, font_regular, kernel_rect.x + 30, kernel_rect.y + 88, (SDL_Color){215, 247, 239, 255}, "Kernel idle");
+                fill_rect(ren, alert_box, C_YELLOW);
+                stroke_rect(ren, alert_box, C_TEXT);
+                draw_text(ren, f_bold, 280, 360, C_BG, "INPUT MODE ACTIVE");
+                draw_text(ren, f_reg, 280, 400, C_BG, alert_reason);
+                draw_text(ren, f_sml, 280, 430, C_BG, "-> Type your data and press ENTER to submit");
             }
         }
 
-        {
-            int i;
-            int lane_count = (selected_algo == MLFQ) ? 0 : 2;
-            SDL_SetRenderDrawColor(renderer, 69, 106, 168, 255);
-            for (i = 0; i < lane_count; i++) {
-                int queue_anchor_x = queue_lanes[i].x + queue_lanes[i].w / 2;
-                int queue_anchor_y = queue_lanes[i].y + queue_lanes[i].h;
-                int kernel_anchor_x = kernel_rect.x + kernel_rect.w / 2;
-            int kernel_anchor_y = kernel_rect.y;
-
-                SDL_RenderDrawLine(renderer,
-                                   kernel_anchor_x,
-                                   kernel_anchor_y,
-                                   queue_anchor_x,
-                                   queue_anchor_y);
-            }
-
-            if (selected_algo != MLFQ) {
-                int ready_anchor_x = queue_lanes[0].x + queue_lanes[0].w;
-                int ready_anchor_y = queue_lanes[0].y + queue_lanes[0].h / 2;
-                int blocked_anchor_x = queue_lanes[1].x;
-                int blocked_anchor_y = queue_lanes[1].y + queue_lanes[1].h / 2;
-
-                SDL_RenderDrawLine(renderer,
-                                   ready_anchor_x,
-                                   ready_anchor_y,
-                                   blocked_anchor_x,
-                                   blocked_anchor_y);
-            }
-        }
-
-        if (dispatch_anim.active) {
-            Uint32 now = SDL_GetTicks();
-            if (now > dispatch_anim.end_ms) {
-                dispatch_anim.active = 0;
-            } else {
-                float t = (float)(now - dispatch_anim.start_ms) / (float)(dispatch_anim.end_ms - dispatch_anim.start_ms);
-                int x;
-                int y;
-                SDL_Rect token;
-                char pid_text[16];
-
-                if (t < 0.0f) t = 0.0f;
-                if (t > 1.0f) t = 1.0f;
-
-                x = (int)(dispatch_anim.start_x + t * (dispatch_anim.end_x - dispatch_anim.start_x));
-                y = (int)(dispatch_anim.start_y + t * (dispatch_anim.end_y - dispatch_anim.start_y));
-                token.x = x - 12;
-                token.y = y - 12;
-                token.w = 24;
-                token.h = 24;
-
-                fill_rect(renderer, token, (SDL_Color){120, 215, 255, 255});
-                stroke_rect(renderer, token, (SDL_Color){18, 64, 96, 255});
-                snprintf(pid_text, sizeof(pid_text), "%d", dispatch_anim.pid);
-                draw_text(renderer, font_small, x - 5, y - 8, (SDL_Color){14, 34, 49, 255}, pid_text);
-            }
-        }
-
-        draw_text(renderer,
-                  font_small,
-                  36,
-                  706,
-                  (SDL_Color){121, 143, 183, 255},
-                  "Controls: I init, R reset, N step | top-right chips choose scheduler");
-
-        SDL_RenderPresent(renderer);
+        SDL_RenderPresent(ren);
     }
 
-    TTF_CloseFont(font_regular);
-    TTF_CloseFont(font_small);
-    TTF_CloseFont(font_large);
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    TTF_Quit();
-    SDL_Quit();
-    return 0;
+    TTF_CloseFont(f_sml); TTF_CloseFont(f_reg); TTF_CloseFont(f_bold);
+    SDL_DestroyRenderer(ren); SDL_DestroyWindow(win);
+    SDL_Quit(); return 0;
 }

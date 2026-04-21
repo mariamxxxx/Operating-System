@@ -3,6 +3,10 @@
 #include "../memory/memoryy.h"
 #include <stdio.h>
 #include <math.h>
+#include <stdarg.h>
+
+// Link to the GUI logger
+extern void gui_log(const char* format, ...);
 
 Queue mlfq_queues[4];
 
@@ -13,7 +17,7 @@ void init_mlfq() {
 }
 
 Process* execute_mlfq() {
-    printf("Executing Multi-Level Feedback Queue Algorithm");
+    gui_log("Executing Multi-Level Feedback Queue Algorithm");
     print_all_queues();
 
     Process *current_process = NULL;
@@ -32,13 +36,13 @@ Process* execute_mlfq() {
 
     //quantum for this leve(2^i)
     int quantum = (int)pow(2, current_level);
-    printf("MLFQ: Selected P%d from Queue %d (Quantum: %d)\n", 
+    gui_log("MLFQ: Selected P%d from Queue %d (Quantum: %d)", 
             current_process->pcb->pid, current_level, quantum);
 
     //execute 
     int instructions_run = 0;
     while (instructions_run < quantum) {
-        printf("Running P%d | Instruction %d/%d\n", 
+        gui_log("Running P%d | Instruction %d/%d", 
                 current_process->pcb->pid, instructions_run + 1, quantum);
         swap_in(current_process->pcb->pid);
         sync_pcb_from_memory(current_process->pcb->pid, current_process->pcb);
@@ -49,14 +53,14 @@ Process* execute_mlfq() {
         instructions_run++;
 
         if (current_process->pcb->state == FINISHED){
-            printf("Process %d has finished\n",current_process->pcb->pid);
+            gui_log("Process %d has finished",current_process->pcb->pid);
             update_state_in_memory(current_process->pcb->pid, FINISHED);
             print_all_queues();
             return current_process; 
 
         }
         if(current_process->pcb->state == BLOCKED) {
-            printf("Process %d is blocked\n",current_process->pcb->pid);
+            gui_log("Process %d is blocked",current_process->pcb->pid);
             update_state_in_memory(current_process->pcb->pid, BLOCKED);
             print_all_queues();
             return current_process; 
@@ -70,7 +74,7 @@ Process* execute_mlfq() {
         int next_level = (current_level < 3) ? current_level + 1 : 3;
         
         enqueue(current_process, &mlfq_queues[next_level]);
-        printf("P%d used full quantum. Moving to Queue %d.\n", current_process->pcb->pid, next_level);
+        gui_log("P%d used full quantum. Moving to Queue %d.", current_process->pcb->pid, next_level);
         print_all_queues();
     }
 
