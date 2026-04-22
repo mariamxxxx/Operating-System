@@ -1,8 +1,21 @@
 #include <stdio.h>  // For FILE, fopen, printf, fgets, fprintf
 #include <stdlib.h> // For malloc, free
 #include <string.h> // For strlen
+#if defined(_WIN32)
+#include <direct.h>
+#else
+#include <sys/stat.h>
+#endif
 #include "syscalls.h"
 #include "../memory/memoryy.h"
+
+static void ensure_disk_dir_exists(void) {
+#if defined(_WIN32)
+    _mkdir("src/disk");
+#else
+    mkdir("src/disk", 0777);
+#endif
+}
 
 static void build_disk_path(const char *name, char *out, size_t out_size) {
     if (name == NULL || out == NULL || out_size == 0) {
@@ -18,10 +31,12 @@ static void build_disk_path(const char *name, char *out, size_t out_size) {
 }
 
 char* readFile(char* filename){ //read file
+    ensure_disk_dir_exists();
+
     char path[512];
     build_disk_path(filename, path, sizeof(path));
 
-    FILE* f= fopen(path,"r");
+    FILE* f= fopen(path,"rb");
     if(f==NULL){
         printf("File not found\n");
         return NULL;
@@ -29,15 +44,25 @@ char* readFile(char* filename){ //read file
 
     fseek(f, 0, SEEK_END);
     long size = ftell(f);
+    if (size < 0) {
+        fclose(f);
+        return NULL;
+    }
     rewind(f);
-    char* res= (char*)malloc(size+1); // DO WE CHANGE MALLOC BECAUSE OF OUR MADEUP MEMEORY
-    fread(res, 1, size, f);
-    res[size]='\0';
+    char* res= (char*)malloc((size_t)size + 1); // DO WE CHANGE MALLOC BECAUSE OF OUR MADEUP MEMEORY
+    if (res == NULL) {
+        fclose(f);
+        return NULL;
+    }
+    size_t bytes_read = fread(res, 1, (size_t)size, f);
+    res[bytes_read]='\0';
     fclose(f);
     return res;
 }
 
 int writeFile(char* filename, char* content){ //write in file
+    ensure_disk_dir_exists();
+
     char path[512];
     build_disk_path(filename, path, sizeof(path));
 
