@@ -147,15 +147,20 @@ void callWriteFile(char* filename, char* content){
 
 char* callReadFile(char* filename){
     printf("=================================================\n");
-    printf("ReadFile: %s\n", filename);
-    char* result = readFromMemory(global_pid, filename);
-    if (result == NULL) {
-        printf("Variable %s not found in memory for process id %d\n", filename, global_pid);
-        return strdup("");  // Return malloced empty string
+    char* resolved_filename = readFromMemory(global_pid, filename);
+    if (resolved_filename == NULL || resolved_filename[0] == '\0') {
+        printf("ReadFile: variable %s not found or empty for process id %d\n", filename, global_pid);
+        return strdup("");
     }
-    printf("ReadFile: got %s\n", result);
+    printf("ReadFile: %s\n", resolved_filename);
+    char* result = readFile(resolved_filename);
+    if (result == NULL) {
+        printf("ReadFile: could not open file %s\n", resolved_filename);
+        return strdup("");
+    }
+    printf("ReadFile: got file content\n");
     printf("=================================================\n");
-    return strdup(result);  // Return malloced copy
+    return result;
 
 }
 
@@ -179,7 +184,7 @@ void execute_instruction(Process* process) {
     }
 
     printf("\n=================================================\n");
-    printf("▶ Executing Process PID = %d | PC = %d\n",process->pcb->pid, process->pcb->pc);
+    printf("[RUN] Executing Process PID = %d | PC = %d\n",process->pcb->pid, process->pcb->pc);
     printf("=================================================\n");    char* instruction = readInstruction(process->pcb->pc);
 
     if (instruction == NULL) {
@@ -195,7 +200,7 @@ void execute_instruction(Process* process) {
 
     for (int i = 0; i < count; i++) {
         printf("[DECODE] Instruction parts (processed right-to-left):\n");
-        printf("  └ Part[%d]: %s\n", i, parts[i]);
+        printf("  -> Part[%d]: %s\n", i, parts[i]);
         char* part = parts[i];
 
         printf("\n[EXECUTION]\n");
@@ -300,7 +305,7 @@ printf("\n[INFO] Process %d has completed all instructions.\n",process->pcb->pid
     }
 
     printf("=================================================\n");
-    printf("✓ End of instruction for PID %d\n", process->pcb->pid);
+    printf("[DONE] End of instruction for PID %d\n", process->pcb->pid);
     printf("=================================================\n");
 }
 

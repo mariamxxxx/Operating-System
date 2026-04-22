@@ -138,6 +138,47 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(_WIN32)
+static char* compat_strtok_r(char* str, const char* delim, char** saveptr) {
+    char* token_start;
+    char* p;
+
+    if (str != NULL) {
+        p = str;
+    } else if (saveptr != NULL && *saveptr != NULL) {
+        p = *saveptr;
+    } else {
+        return NULL;
+    }
+
+    p += strspn(p, delim);
+    if (*p == '\0') {
+        if (saveptr != NULL) {
+            *saveptr = p;
+        }
+        return NULL;
+    }
+
+    token_start = p;
+    p = token_start + strcspn(token_start, delim);
+
+    if (*p == '\0') {
+        if (saveptr != NULL) {
+            *saveptr = p;
+        }
+    } else {
+        *p = '\0';
+        if (saveptr != NULL) {
+            *saveptr = p + 1;
+        }
+    }
+
+    return token_start;
+}
+
+#define strtok_r(str, delim, saveptr) compat_strtok_r((str), (delim), (saveptr))
+#endif
+
 #include "../memory/memoryy.h"
 #include "../os/syscalls.h"
 #include "../scheduler/scheduler.h"
