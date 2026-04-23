@@ -38,6 +38,11 @@ Process* execute_round_robin() {
     scheduler_set_last_executed_pid(current_rr_process->pcb->pid); //gui
     execute_instruction(current_rr_process);
 
+    if (instruction_stalled_on_input()) {
+        print_all_queues();
+        return current_rr_process;
+    }
+
     if (current_rr_process->pcb->state == FINISHED) {
         gui_log("process %d has finished.", current_rr_process->pcb->pid);
         update_state_in_memory(current_rr_process->pcb->pid, FINISHED);

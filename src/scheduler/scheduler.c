@@ -87,6 +87,8 @@ void add_process_to_scheduler(Process *process) {
 }
 
 Process* schedule_next_process(SchedulerAlgorithm algo) {
+    // Idle steps must not see a stale "input stall" (would freeze the sim clock).
+    instruction_clear_stall();
     current_algo=algo;
     g_scheduler_last_executed_pid = -1; //gui
     switch(algo) {

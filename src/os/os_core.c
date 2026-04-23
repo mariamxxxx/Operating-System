@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include "../synchronization/mutex.h"
+#include "../interpreter/interpreter.h"
 
 // Link to the GUI logger
 extern void gui_log(const char* format, ...);
@@ -84,9 +85,12 @@ int os_step(void) {
         g_last_dispatched_pid = -1;
     }
 
-    // Advance simulated time on every scheduler tick so deferred arrivals
-    // still become eligible even when no process is runnable.
-    g_clock_tick++;
+    // Advance simulated time for each completed scheduler "step" except when
+    // the CPU is still waiting for a GUI input submit (ask/wait/submit = one tick
+    // when the instruction actually completes).
+    if (!instruction_stalled_on_input()) {
+        g_clock_tick++;
+    }
 
     if (g_running_process != NULL && g_running_process->pcb != NULL && g_running_process->pcb->state != RUNNING) {
         g_running_process = NULL;

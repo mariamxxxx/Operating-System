@@ -132,22 +132,23 @@ static void capture_input_var_hint_from_log_line(const char *line) {
 static void load_arrivals_for_current_tick(void) {
     int tick = os_get_clock();
 
+    /* Keep arrival ticks aligned with ProgramSpec in src/main.c (old_main). */
+    if (!program_3_loaded && tick >= 4) {
+        loadAndInterpret("src/programs/Program_3.txt", 1);
+        gui_log(">> Auto-loaded Program_3 at arrival tick 1");
+        program_3_loaded = true;
+    }
+
     if (!program_1_loaded && tick >= 0) {
-        loadAndInterpret("src/programs/Program_1.txt", 0);
-        gui_log(">> Auto-loaded Program_1 at tick 0");
+        loadAndInterpret("src/programs/Program_1.txt", 3);
+        gui_log(">> Auto-loaded Program_1 at arrival tick 3");
         program_1_loaded = true;
     }
 
     if (!program_2_loaded && tick >= 1) {
-        loadAndInterpret("src/programs/Program_2.txt", 1);
-        gui_log(">> Auto-loaded Program_2 at tick 1");
+        loadAndInterpret("src/programs/Program_2.txt", 4);
+        gui_log(">> Auto-loaded Program_2 at arrival tick 4");
         program_2_loaded = true;
-    }
-
-    if (!program_3_loaded && tick >= 4) {
-        loadAndInterpret("src/programs/Program_3.txt", 4);
-        gui_log(">> Auto-loaded Program_3 at tick 4");
-        program_3_loaded = true;
     }
 }
 
