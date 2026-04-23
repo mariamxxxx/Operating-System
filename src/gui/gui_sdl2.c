@@ -4,6 +4,9 @@
 #include <stdarg.h> 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#if defined(_WIN32)
+#include <windows.h>
+#endif
 
 #include "../interpreter/parser.h"
 #include "../os/os_core.h"
@@ -13,6 +16,11 @@
 #define MAX_LOG_LINES 1000
 #define VISIBLE_LINES 10
 #define MAX_INPUT_LEN 64
+#define GUI_BASE_WIDTH 1200
+#define GUI_BASE_HEIGHT 850
+#define GUI_DEFAULT_WIDTH 960
+#define GUI_DEFAULT_HEIGHT 680
+#define AUTO_TICK_MS 1000
 
 // Modern Dark Theme Colors
 SDL_Color C_BG      = {30, 30, 46, 255};   
@@ -27,13 +35,134 @@ SDL_Color C_INACTIVE= {24, 24, 37, 255};
 extern char input_text[];
 static char log_buffer[MAX_LOG_LINES][128];
 static int log_count = 0;
-static int log_scroll_offset = 0; 
 
 char input_text[MAX_INPUT_LEN] = "";
 bool is_waiting_for_input = false;
 bool input_focused = false; 
 bool input_submitted = false; // NEW FLAG: Tells the OS the text is ready
-char alert_reason[128] = "";
+static char input_var_hint[MAX_INPUT_LEN] = "";
+static bool program_1_loaded = false;
+static bool program_2_loaded = false;
+static bool program_3_loaded = false;
+
+void gui_log(const char *format, ...);
+
+static bool submit_input_if_ready(void) {
+    if (!is_waiting_for_input || strlen(input_text) == 0) {
+        return false;
+    }
+
+    gui_log("Input Captured: %s", input_text);
+    input_submitted = true;
+    is_waiting_for_input = false;
+    input_var_hint[0] = '\0';
+    return true;
+}
+
+static void play_tick_sound(void) {
+#if defined(_WIN32)
+    MessageBeep(MB_OK);
+#endif
+}
+
+static int sx_i(int base, float sx) {
+    return (int)(base * sx);
+}
+
+static int sy_i(int base, float sy) {
+    return (int)(base * sy);
+}
+
+static SDL_Rect scale_rect(SDL_Rect base, float sx, float sy) {
+    SDL_Rect out;
+    out.x = sx_i(base.x, sx);
+    out.y = sy_i(base.y, sy);
+    out.w = sx_i(base.w, sx);
+    out.h = sy_i(base.h, sy);
+    if (out.w < 1) out.w = 1;
+    if (out.h < 1) out.h = 1;
+    return out;
+}
+
+static void capture_input_var_hint_from_log_line(const char *line) {
+    if (line == NULL) {
+        return;
+    }
+
+    // Example: Exec: Instr '010*x*input'
+    const char *prefix = "Exec: Instr '";
+    size_t prefix_len = strlen(prefix);
+    if (strncmp(line, prefix, prefix_len) != 0) {
+        return;
+    }
+
+    const char *instr_start = line + prefix_len;
+    const char *instr_end = strchr(instr_start, '\'');
+    if (instr_end == NULL || instr_end <= instr_start) {
+        return;
+    }
+
+    char instruction[128];
+    size_t len = (size_t)(instr_end - instr_start);
+    if (len >= sizeof(instruction)) {
+        len = sizeof(instruction) - 1;
+    }
+    memcpy(instruction, instr_start, len);
+    instruction[len] = '\0';
+
+    if (strncmp(instruction, "010*", 4) != 0 || strstr(instruction, "*input") == NULL) {
+        return;
+    }
+
+    const char *var_start = instruction + 4;
+    const char *var_end = strchr(var_start, '*');
+    if (var_end == NULL || var_end <= var_start) {
+        return;
+    }
+
+    size_t var_len = (size_t)(var_end - var_start);
+    if (var_len >= sizeof(input_var_hint)) {
+        var_len = sizeof(input_var_hint) - 1;
+    }
+
+    memcpy(input_var_hint, var_start, var_len);
+    input_var_hint[var_len] = '\0';
+}
+
+static void load_arrivals_for_current_tick(void) {
+    int tick = os_get_clock();
+
+    if (!program_1_loaded && tick >= 0) {
+        loadAndInterpret("src/programs/Program_1.txt", 0);
+        gui_log(">> Auto-loaded Program_1 at tick 0");
+        program_1_loaded = true;
+    }
+
+    if (!program_2_loaded && tick >= 1) {
+        loadAndInterpret("src/programs/Program_2.txt", 1);
+        gui_log(">> Auto-loaded Program_2 at tick 1");
+        program_2_loaded = true;
+    }
+
+    if (!program_3_loaded && tick >= 4) {
+        loadAndInterpret("src/programs/Program_3.txt", 4);
+        gui_log(">> Auto-loaded Program_3 at tick 4");
+        program_3_loaded = true;
+    }
+}
+
+static void execute_single_tick(bool is_auto_tick) {
+    flush_pending_rr_process();
+    os_step();
+    load_arrivals_for_current_tick();
+    play_tick_sound();
+
+    if (is_auto_tick) {
+        gui_log("Tick %d: Auto step executed.", os_get_clock());
+    } else {
+        gui_log("Tick %d: Step executed.", os_get_clock());
+    }
+}
 
 void gui_log(const char *format, ...) {
     if (log_count >= MAX_LOG_LINES) return;
@@ -41,16 +170,15 @@ void gui_log(const char *format, ...) {
     va_start(args, format);
     vsnprintf(log_buffer[log_count], 128, format, args);
     va_end(args);
+
+    capture_input_var_hint_from_log_line(log_buffer[log_count]);
     
-    if (strstr(log_buffer[log_count], "goint to take input") != NULL || 
-        strstr(log_buffer[log_count], "Enter input:") != NULL) {
+    if (strstr(log_buffer[log_count], "goint to take input") != NULL) {
         
         is_waiting_for_input = true;
-        snprintf(alert_reason, sizeof(alert_reason), "%s", log_buffer[log_count]);
     }
     
     log_count++;
-    log_scroll_offset = 0; 
 }
 
 static void fill_rect(SDL_Renderer *r, SDL_Rect rect, SDL_Color c) {
@@ -122,11 +250,22 @@ int main(int argc, char **argv) {
     
     SchedulerAlgorithm selected_algo = HRRN;
     bool initialized = false, running = true;
+    bool auto_run = false;
+    bool resume_auto_run_after_input = false;
+    Uint32 last_auto_tick_ms = 0;
 
     SDL_Init(SDL_INIT_VIDEO);
     TTF_Init();
-    SDL_Window *win = SDL_CreateWindow("OStor OS Pro", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1200, 850, 0);
+    SDL_Window *win = SDL_CreateWindow(
+        "OStor OS Pro",
+        SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED,
+        GUI_DEFAULT_WIDTH,
+        GUI_DEFAULT_HEIGHT,
+        SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE
+    );
     SDL_Renderer *ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
+    SDL_SetWindowMinimumSize(win, 900, 620);
 
     TTF_Font *f_sml = TTF_OpenFont("assets/font.ttf", 14);
     TTF_Font *f_reg = TTF_OpenFont("assets/font.ttf", 18);
@@ -134,40 +273,53 @@ int main(int argc, char **argv) {
 
     if (!f_reg) { printf("CRITICAL: font.ttf missing from assets folder.\n"); return 1; }
 
-    SDL_Rect btn_rr = {50, 80, 100, 40};
-    SDL_Rect btn_hr = {160, 80, 100, 40};
-    SDL_Rect btn_ml = {270, 80, 100, 40};
-    SDL_Rect btn_step = {1050, 80, 100, 40};
-    SDL_Rect input_bar = {50, 770, 1100, 50}; 
-    SDL_Rect term_rect = {50, 430, 1100, 320}; 
+    SDL_Rect btn_rr_base = {50, 80, 100, 40};
+    SDL_Rect btn_hr_base = {160, 80, 100, 40};
+    SDL_Rect btn_ml_base = {270, 80, 100, 40};
+    SDL_Rect btn_run_base = {940, 80, 100, 40};
+    SDL_Rect btn_pause_base = {1050, 80, 100, 40};
+    SDL_Rect btn_step_base = {830, 80, 100, 40};
+    SDL_Rect input_bar_base = {50, 770, 1100, 50};
+    SDL_Rect btn_enter_base = {1060, 770, 90, 50};
+    SDL_Rect term_rect_base = {50, 430, 1100, 320};
+    SDL_Rect ready_rect_base = {50, 140, 530, 140};
+    SDL_Rect blocked_rect_base = {620, 140, 530, 140};
+    SDL_Rect kernel_rect_base = {50, 290, 1100, 120};
 
     gui_log(">> System Online. Click an algorithm (RR, HRRN, MLFQ) to begin.");
     SDL_StopTextInput(); 
 
     while (running) {
+        int win_w = GUI_DEFAULT_WIDTH;
+        int win_h = GUI_DEFAULT_HEIGHT;
+        SDL_GetWindowSize(win, &win_w, &win_h);
+
+        float sx = (float)win_w / (float)GUI_BASE_WIDTH;
+        float sy = (float)win_h / (float)GUI_BASE_HEIGHT;
+
+        SDL_Rect btn_rr = scale_rect(btn_rr_base, sx, sy);
+        SDL_Rect btn_hr = scale_rect(btn_hr_base, sx, sy);
+        SDL_Rect btn_ml = scale_rect(btn_ml_base, sx, sy);
+        SDL_Rect btn_run = scale_rect(btn_run_base, sx, sy);
+        SDL_Rect btn_pause = scale_rect(btn_pause_base, sx, sy);
+        SDL_Rect btn_step = scale_rect(btn_step_base, sx, sy);
+        SDL_Rect input_bar = scale_rect(input_bar_base, sx, sy);
+        SDL_Rect btn_enter = scale_rect(btn_enter_base, sx, sy);
+        SDL_Rect term_rect = scale_rect(term_rect_base, sx, sy);
+        SDL_Rect ready_rect = scale_rect(ready_rect_base, sx, sy);
+        SDL_Rect blocked_rect = scale_rect(blocked_rect_base, sx, sy);
+        SDL_Rect kernel_rect = scale_rect(kernel_rect_base, sx, sy);
+
         SDL_Event ev;
         while (SDL_PollEvent(&ev)) {
             if (ev.type == SDL_QUIT) running = false;
-            
-            if (ev.type == SDL_MOUSEWHEEL) {
-                int mx, my;
-                SDL_GetMouseState(&mx, &my);
-                
-                if (mx >= term_rect.x && mx <= term_rect.x + term_rect.w && 
-                    my >= term_rect.y && my <= term_rect.y + term_rect.h) {
-                    
-                    int max_scroll = (log_count > VISIBLE_LINES) ? log_count - VISIBLE_LINES : 0;
-                    log_scroll_offset -= ev.wheel.y; 
-                    
-                    if (log_scroll_offset < 0) log_scroll_offset = 0;
-                    if (log_scroll_offset > max_scroll) log_scroll_offset = max_scroll;
-                }
-            }
 
             if (ev.type == SDL_MOUSEBUTTONDOWN && ev.button.button == SDL_BUTTON_LEFT) {
                 int mx = ev.button.x, my = ev.button.y;
                 
-                if (mx >= input_bar.x && mx <= input_bar.x + input_bar.w && my >= input_bar.y && my <= input_bar.y + input_bar.h) {
+                if (is_waiting_for_input &&
+                    mx >= input_bar.x && mx <= input_bar.x + input_bar.w &&
+                    my >= input_bar.y && my <= input_bar.y + input_bar.h) {
                     input_focused = true;
                     SDL_StartTextInput();
                 } else {
@@ -175,19 +327,53 @@ int main(int argc, char **argv) {
                     SDL_StopTextInput();
                 }
 
+                if (is_waiting_for_input &&
+                    mx >= btn_enter.x && mx <= btn_enter.x + btn_enter.w &&
+                    my >= btn_enter.y && my <= btn_enter.y + btn_enter.h) {
+                    if (submit_input_if_ready() && resume_auto_run_after_input) {
+                        auto_run = true;
+                        resume_auto_run_after_input = false;
+                        last_auto_tick_ms = SDL_GetTicks();
+                        gui_log("Tick auto-run resumed after input.");
+                    }
+                }
+
                 if (mx >= btn_rr.x && mx <= btn_rr.x + btn_rr.w && my >= btn_rr.y && my <= btn_rr.y + btn_rr.h) { 
-                    selected_algo = RR; os_init(RR); initialized = true; gui_log(">> Init: Round Robin"); 
+                    selected_algo = RR; os_init(RR); initialized = true; gui_log(">> Init: Round Robin");
+                    program_1_loaded = false; program_2_loaded = false; program_3_loaded = false;
+                    auto_run = false;
+                    load_arrivals_for_current_tick();
                 }
                 if (mx >= btn_hr.x && mx <= btn_hr.x + btn_hr.w && my >= btn_hr.y && my <= btn_hr.y + btn_hr.h) { 
-                    selected_algo = HRRN; os_init(HRRN); initialized = true; gui_log(">> Init: HRRN"); 
+                    selected_algo = HRRN; os_init(HRRN); initialized = true; gui_log(">> Init: HRRN");
+                    program_1_loaded = false; program_2_loaded = false; program_3_loaded = false;
+                    auto_run = false;
+                    load_arrivals_for_current_tick();
                 }
                 if (mx >= btn_ml.x && mx <= btn_ml.x + btn_ml.w && my >= btn_ml.y && my <= btn_ml.y + btn_ml.h) { 
-                    selected_algo = MLFQ; os_init(MLFQ); initialized = true; gui_log(">> Init: MLFQ"); 
+                    selected_algo = MLFQ; os_init(MLFQ); initialized = true; gui_log(">> Init: MLFQ");
+                    program_1_loaded = false; program_2_loaded = false; program_3_loaded = false;
+                    auto_run = false;
+                    load_arrivals_for_current_tick();
+                }
+
+                if (mx >= btn_run.x && mx <= btn_run.x + btn_run.w && my >= btn_run.y && my <= btn_run.y + btn_run.h && initialized) {
+                    auto_run = true;
+                    resume_auto_run_after_input = false;
+                    last_auto_tick_ms = SDL_GetTicks();
+                    gui_log("Tick auto-run enabled (1 second interval).");
+                }
+
+                if (mx >= btn_pause.x && mx <= btn_pause.x + btn_pause.w && my >= btn_pause.y && my <= btn_pause.y + btn_pause.h && initialized) {
+                    auto_run = false;
+                    resume_auto_run_after_input = false;
+                    gui_log("Tick auto-run paused.");
                 }
                 
                 if (mx >= btn_step.x && mx <= btn_step.x + btn_step.w && my >= btn_step.y && my <= btn_step.y + btn_step.h && initialized) {
-                    os_step();
-                    gui_log("Tick %d: Step executed.", os_get_clock());
+                    auto_run = false;
+                    resume_auto_run_after_input = false;
+                    execute_single_tick(false);
                 }
             }
             
@@ -203,9 +389,12 @@ int main(int argc, char **argv) {
                     }
                     if (ev.key.keysym.sym == SDLK_RETURN && strlen(input_text) > 0) {
                         if (is_waiting_for_input) {
-                            gui_log("Input Captured: %s", input_text);
-                            input_submitted = true; // Raise the flag for the OS!
-                            is_waiting_for_input = false; // Hide the alert box
+                            if (submit_input_if_ready() && resume_auto_run_after_input) {
+                                auto_run = true;
+                                resume_auto_run_after_input = false;
+                                last_auto_tick_ms = SDL_GetTicks();
+                                gui_log("Tick auto-run resumed after input.");
+                            }
                         } else {
                             gui_log("LOAD_CMD: %s", input_text);
                             char path[512];
@@ -218,13 +407,25 @@ int main(int argc, char **argv) {
             }
         }
 
-        fill_rect(ren, (SDL_Rect){0, 0, 1200, 850}, C_BG);
-        draw_text(ren, f_bold, 50, 30, C_ACCENT, "OSTOR OS DASHBOARD v3.7");
+        if (is_waiting_for_input) {
+            input_focused = true;
+            SDL_StartTextInput();
+            if (auto_run) {
+                auto_run = false;
+                resume_auto_run_after_input = true;
+                gui_log("Tick auto-run paused: waiting for input.");
+            }
+        }
+
+        fill_rect(ren, (SDL_Rect){0, 0, win_w, win_h}, C_BG);
+        draw_text(ren, f_bold, sx_i(50, sx), sy_i(30, sy), C_ACCENT, "OStor OS Dashboard v3.7");
         
         draw_button(ren, f_reg, btn_rr, "RR", C_ACCENT, selected_algo == RR);
         draw_button(ren, f_reg, btn_hr, "HRRN", C_ACCENT, selected_algo == HRRN);
         draw_button(ren, f_reg, btn_ml, "MLFQ", C_ACCENT, selected_algo == MLFQ);
-        draw_button(ren, f_reg, btn_step, "STEP", C_GREEN, false);
+        draw_button(ren, f_reg, btn_step, "Step", C_GREEN, false);
+        draw_button(ren, f_reg, btn_run, "Run", C_ACCENT, auto_run);
+        draw_button(ren, f_reg, btn_pause, "Pause", C_RED, !auto_run);
 
         Queue *ready_qs[4];
         int num_ready = 1;
@@ -236,73 +437,70 @@ int main(int argc, char **argv) {
             ready_qs[0] = &os_ready_queue;
         }
         
-        draw_queue_visualized(ren, f_reg, f_sml, (SDL_Rect){50, 140, 530, 140}, "READY QUEUE", ready_qs, num_ready, C_GREEN);
+        draw_queue_visualized(ren, f_reg, f_sml, ready_rect, "Ready Queue", ready_qs, num_ready, C_GREEN);
         
         Queue *blocked_qs[1] = {&general_blocked_queue};
-        draw_queue_visualized(ren, f_reg, f_sml, (SDL_Rect){620, 140, 530, 140}, "BLOCKED QUEUE", blocked_qs, 1, C_RED);
+        draw_queue_visualized(ren, f_reg, f_sml, blocked_rect, "Blocked Queue", blocked_qs, 1, C_RED);
 
-        SDL_Rect kernel_rect = {50, 290, 1100, 120};
         fill_rect(ren, kernel_rect, C_PANEL);
         stroke_rect(ren, kernel_rect, C_ACCENT);
-        draw_text(ren, f_bold, 70, 310, C_ACCENT, "KERNEL EXECUTION");
+        draw_text(ren, f_bold, sx_i(70, sx), sy_i(310, sy), C_ACCENT, "Kernel Execution");
         
         OSSnapshot snap = os_get_snapshot();
         char k_stat[128];
         if (snap.current_pid != -1) {
             snprintf(k_stat, sizeof(k_stat), "Running PID: %d | System Clock: %d", snap.current_pid, snap.clock_tick);
-            draw_text(ren, f_reg, 70, 350, C_GREEN, k_stat);
+            draw_text(ren, f_reg, sx_i(70, sx), sy_i(350, sy), C_GREEN, k_stat);
         } else {
             snprintf(k_stat, sizeof(k_stat), "CPU Idle | System Clock: %d", snap.clock_tick);
-            draw_text(ren, f_reg, 70, 350, C_TEXT, k_stat);
+            draw_text(ren, f_reg, sx_i(70, sx), sy_i(350, sy), C_TEXT, k_stat);
         }
 
         fill_rect(ren, term_rect, (SDL_Color){17, 17, 27, 255}); 
         stroke_rect(ren, term_rect, C_TEXT);
 
-        int max_scroll = (log_count > VISIBLE_LINES) ? log_count - VISIBLE_LINES : 0;
-        int base_idx = max_scroll - log_scroll_offset;
-        if (base_idx < 0) base_idx = 0;
+        int base_idx = (log_count > VISIBLE_LINES) ? (log_count - VISIBLE_LINES) : 0;
 
         for (int i = 0; i < VISIBLE_LINES && (base_idx + i) < log_count; i++) {
-            draw_text(ren, f_sml, 70, 445 + (i * 28), C_TEXT, log_buffer[base_idx + i]);
-        }
-        
-        if (max_scroll > 0) {
-            char scroll_lbl[32];
-            snprintf(scroll_lbl, sizeof(scroll_lbl), "Scroll: %d", log_scroll_offset);
-            draw_text(ren, f_sml, 1050, 445, C_INACTIVE, scroll_lbl);
+            draw_text(ren, f_sml, sx_i(70, sx), sy_i(445 + (i * 28), sy), C_TEXT, log_buffer[base_idx + i]);
         }
 
-        SDL_Color bg_color = input_focused ? C_PANEL : C_INACTIVE;
-        fill_rect(ren, input_bar, bg_color);
-        if (input_focused) stroke_rect(ren, input_bar, C_ACCENT); 
-        
-        SDL_Color prompt_col = is_waiting_for_input ? C_RED : C_YELLOW;
-        const char* prompt_text = is_waiting_for_input ? "AWAITING INPUT > " : "FILE TO LOAD > ";
-        
-        draw_text(ren, f_reg, 70, 785, prompt_col, prompt_text);
-        draw_text(ren, f_reg, 260, 785, C_TEXT, input_text);
-
-        if (input_focused && (SDL_GetTicks() / 500) % 2) {
-            int cur_x = 260 + (strlen(input_text) * 10); 
-            fill_rect(ren, (SDL_Rect){cur_x, 785, 2, 20}, C_TEXT);
-        }
-
+        bool blink_on = ((SDL_GetTicks() / 450) % 2) == 0;
         if (is_waiting_for_input) {
-            SDL_Rect alert_box = {250, 350, 700, 120};
-            
-            if (!input_focused) {
-                fill_rect(ren, alert_box, C_RED);
-                stroke_rect(ren, alert_box, C_TEXT);
-                draw_text(ren, f_bold, 280, 360, C_BG, "ACTION REQUIRED: AWAITING INPUT");
-                draw_text(ren, f_reg, 280, 400, C_BG, alert_reason); 
-                draw_text(ren, f_sml, 280, 430, C_BG, "-> Click the text box below, type your data, and press ENTER");
+            SDL_Color bg_color = input_focused ? C_PANEL : C_INACTIVE;
+            fill_rect(ren, input_bar, bg_color);
+            stroke_rect(ren, input_bar, blink_on ? C_RED : C_ACCENT);
+
+            bool can_submit = strlen(input_text) > 0;
+            SDL_Color enter_bg = can_submit ? C_GREEN : C_INACTIVE;
+            draw_button(ren, f_reg, btn_enter, "Enter", enter_bg, can_submit);
+
+            const int prompt_x = sx_i(70, sx);
+            const int text_x = sx_i(260, sx);
+            const int input_y = sy_i(785, sy);
+            if (blink_on) {
+                draw_text(ren, f_reg, prompt_x, input_y, C_RED, "Awaiting Input >");
+            }
+
+            if (strlen(input_text) == 0 && strlen(input_var_hint) > 0) {
+                char hint[MAX_STRING];
+                snprintf(hint, sizeof(hint), "value for %s", input_var_hint);
+                draw_text(ren, f_reg, text_x, input_y, C_INACTIVE, hint);
             } else {
-                fill_rect(ren, alert_box, C_YELLOW);
-                stroke_rect(ren, alert_box, C_TEXT);
-                draw_text(ren, f_bold, 280, 360, C_BG, "INPUT MODE ACTIVE");
-                draw_text(ren, f_reg, 280, 400, C_BG, alert_reason);
-                draw_text(ren, f_sml, 280, 430, C_BG, "-> Type your data and press ENTER to submit");
+                draw_text(ren, f_reg, text_x, input_y, C_TEXT, input_text);
+            }
+
+            if (blink_on) {
+                int cur_x = text_x + (int)(strlen(input_text) * (9.0f * sx));
+                fill_rect(ren, (SDL_Rect){cur_x, input_y, 2, sy_i(20, sy)}, C_TEXT);
+            }
+        }
+
+        if (initialized && auto_run) {
+            Uint32 now_ms = SDL_GetTicks();
+            if (now_ms - last_auto_tick_ms >= AUTO_TICK_MS) {
+                execute_single_tick(true);
+                last_auto_tick_ms = now_ms;
             }
         }
 
