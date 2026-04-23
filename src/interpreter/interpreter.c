@@ -12,6 +12,17 @@
 // Link to the GUI logger
 extern void gui_log(const char* format, ...);
 
+// 1: last execute bailed on "assign … input" before submit; sim clock/quantum should not advance
+static int s_instruction_stalled_on_input = 0;
+
+void instruction_clear_stall(void) {
+    s_instruction_stalled_on_input = 0;
+}
+
+int instruction_stalled_on_input(void) {
+    return s_instruction_stalled_on_input;
+}
+
 int global_pid ;
 
 char* substring(const char* src, int start, int length) {
@@ -178,6 +189,7 @@ char* callTakeInput(){
 extern bool input_submitted; // Link to the GUI flag
 
 void execute_instruction(Process* process) { 
+    instruction_clear_stall();
     global_pid = process->pcb->pid;
 
     gui_log("Exec: PID %d", process->pcb->pid);
@@ -264,10 +276,12 @@ void execute_instruction(Process* process) {
             else { gui_log("Syntax Error: Missing filename for readFile in instruction %s", instruction); }
         }
         if (strcmp(part, "input") == 0 ){
-            // FIX: If the user hasn't hit ENTER yet, abort and try again next tick
+            // If the user hasn't hit ENTER yet, abort and try again; one logical clock
+            // tick is charged only when the instruction completes (see os_step / schedulers).
             if (!input_submitted) {
                 gui_log("Process %d is goint to take input, please press enter ", process->pcb->pid);
                 free_parts(parts, count);
+                s_instruction_stalled_on_input = 1;
                 return; // Return WITHOUT advancing the Program Counter (PC)!
             } else {
                 // If they have hit enter, consume the input and let the instruction finish!
