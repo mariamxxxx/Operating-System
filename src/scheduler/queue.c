@@ -1,20 +1,23 @@
 #include "queue.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
+
+// Link to the GUI logger if we ever need structural debugging
+extern void gui_log(const char* format, ...);
 
 void init_queue(Queue *q) {
     q->head = NULL;
     q->tail = NULL;
     q->size = 0;
 }
-// void init_mlfq() {
-//     for (int i = 0; i < 4; i++) {
-//         init_queue(&mlfq_queues[i]);
-//     }
-// }
 
-void enqueue(Process *process,Queue *q) {
+void enqueue(Process *process, Queue *q) {
+    if (process == NULL) return;
+    
     QueueNode *newNode = (QueueNode*)malloc(sizeof(QueueNode));
+    if (newNode == NULL) return;
+
     newNode->process = process;
     newNode->next = NULL;
 
@@ -41,12 +44,11 @@ Process* dequeue(Queue *q) {
     return process;
 }
 
-
-//for hrrn
+// Support for HRRN (picking non-head processes)
 void remove_from_queue(Queue *q, Process *target) {
     if (q->head == NULL || target == NULL) return;
 
-    // if the target is the head
+    // If the target is the head
     if (q->head->process == target) {
         dequeue(q);
         return;

@@ -23,6 +23,8 @@ void set_pending_rr_process(Process *process);
 void flush_pending_rr_process(void);
 void print_all_queues();
 SchedulerAlgorithm get_current_algo(); 
+void scheduler_set_last_executed_pid(int pid); //gui
+int scheduler_get_last_executed_pid(void); //gui
 
 // the master function the OS will call every time it needs a new process
 Process* schedule_next_process(SchedulerAlgorithm algo);

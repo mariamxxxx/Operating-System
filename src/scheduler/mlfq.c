@@ -1,3 +1,5 @@
+
+
 #include "scheduler.h"
 #include "../interpreter/interpreter.h"
 #include "../memory/memoryy.h"
@@ -5,6 +7,9 @@
 #include <math.h>
 
 Queue mlfq_queues[4];
+static Process *current_mlfq_process = NULL;
+static int current_mlfq_level = -1;
+static int mlfq_ticks_used = 0;
 static Process *current_mlfq_process = NULL;
 static int current_mlfq_level = -1;
 static int mlfq_ticks_used = 0;

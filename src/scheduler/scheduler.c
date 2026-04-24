@@ -1,9 +1,13 @@
 #include "scheduler.h"
 #include <stdio.h>
 #include <stddef.h> //for null pointer 
+#include <stdarg.h>
 #include "../memory/memoryy.h"
 #include "../interpreter/interpreter.h"
 #include "../os/os_core.h"
+
+// Link to the GUI logger
+extern void gui_log(const char* format, ...);
 
 //the global queues for the whole OS
  Queue os_ready_queue;
@@ -12,52 +16,59 @@
 
 static SchedulerAlgorithm current_algo;
 static Process *pending_rr_process = NULL;
+static int g_scheduler_last_executed_pid = -1; //gui
 
 void init_scheduler() {
     init_queue(&os_ready_queue);
     init_queue(&general_blocked_queue);
     init_mlfq();
     pending_rr_process = NULL;
+    g_scheduler_last_executed_pid = -1; //gui
 } //will be called in the main implemetation
 
 
 void print_all_queues() {
-    printf("\n--- SYSTEM QUEUE STATUS ---\n");
+    gui_log("--- SYSTEM QUEUE STATUS ---");
+
+    char buffer[512];
+    int pos = 0;
 
     // Ready Queue
-    printf("Ready Queue: [");
+    pos = snprintf(buffer, sizeof(buffer), "Ready Queue: [");
     QueueNode *current = os_ready_queue.head;
     while (current != NULL) {
-        printf("P%d", current->process->pcb->pid);
-        if (current->next != NULL) printf(", ");
+        pos += snprintf(buffer + pos, sizeof(buffer) - pos, "P%d", current->process->pcb->pid);
+        if (current->next != NULL) pos += snprintf(buffer + pos, sizeof(buffer) - pos, ", ");
         current = current->next;
     }
-    printf("]\n");
+    snprintf(buffer + pos, sizeof(buffer) - pos, "]");
+    gui_log("%s", buffer);
 
     // General Blocked Queue
-    printf("Blocked Queue: [");
+    pos = snprintf(buffer, sizeof(buffer), "Blocked Queue: [");
     current = general_blocked_queue.head;
     while (current != NULL) {
-        printf("P%d", current->process->pcb->pid);
-        if (current->next != NULL) printf(", ");
+        pos += snprintf(buffer + pos, sizeof(buffer) - pos, "P%d", current->process->pcb->pid);
+        if (current->next != NULL) pos += snprintf(buffer + pos, sizeof(buffer) - pos, ", ");
         current = current->next;
     }
-    printf("]\n");
+    snprintf(buffer + pos, sizeof(buffer) - pos, "]");
+    gui_log("%s", buffer);
 
     //for mlfq
-
-    if(get_current_algo()==MLFQ){
-    for (int i = 0; i < 4; i++) {
-    printf("MLFQ Queue %d: [", i);
-    QueueNode *curr = mlfq_queues[i].head;
-    while (curr != NULL) {
-        printf("P%d", curr->process->pcb->pid);
-        if (curr->next != NULL) printf(", ");
-        curr = curr->next;
+    if(get_current_algo() == MLFQ){
+        for (int i = 0; i < 4; i++) {
+            pos = snprintf(buffer, sizeof(buffer), "MLFQ Queue %d: [", i);
+            QueueNode *curr = mlfq_queues[i].head;
+            while (curr != NULL) {
+                pos += snprintf(buffer + pos, sizeof(buffer) - pos, "P%d", curr->process->pcb->pid);
+                if (curr->next != NULL) pos += snprintf(buffer + pos, sizeof(buffer) - pos, ", ");
+                curr = curr->next;
+            }
+            snprintf(buffer + pos, sizeof(buffer) - pos, "]");
+            gui_log("%s", buffer);
+        }
     }
-    printf("]\n");
-}
-}
 }
 
 
@@ -73,12 +84,13 @@ void add_process_to_scheduler(Process *process) {
     } else {
         enqueue(process, &os_ready_queue);
     }
-
-    
 }
 
 Process* schedule_next_process(SchedulerAlgorithm algo) {
+    // Idle steps must not see a stale "input stall" (would freeze the sim clock).
+    instruction_clear_stall();
     current_algo=algo;
+    g_scheduler_last_executed_pid = -1; //gui
     switch(algo) {
         case RR:   return execute_round_robin();
         case HRRN: return execute_hrrn();
@@ -107,3 +119,11 @@ void flush_pending_rr_process(void) {
     enqueue(pending_rr_process, &os_ready_queue);
     pending_rr_process = NULL;
 }
+
+void scheduler_set_last_executed_pid(int pid) {
+    g_scheduler_last_executed_pid = pid;
+} //gui
+
+int scheduler_get_last_executed_pid(void) {
+    return g_scheduler_last_executed_pid;
+} //gui
