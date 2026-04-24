@@ -26,7 +26,7 @@ Process* execute_round_robin() {
         print_all_queues();
     }
 
-    int instruction_number = current_rr_process->pcb->pc - current_rr_process->pcb->memory_bounds[0] + 1;
+    int instruction_number = current_rr_process->pcb->pc - (current_rr_process->pcb->memory_bounds[0] + 7) + 1;
     if (instruction_number < 1) {
         instruction_number = rr_ticks_used + 1;
     }
