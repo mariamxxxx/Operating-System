@@ -283,7 +283,7 @@ void execute_instruction(Process* process) {
             }
         }
         if (strcmp(part, "input") == 0 ){
-            printf("Process %d is goint to take input, please press enter \n", process->pcb->pid);
+            printf("Process %d is going to take input, please press enter \n", process->pcb->pid);
             parts[i] = callTakeInput();
         }
     }

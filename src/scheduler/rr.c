@@ -26,7 +26,11 @@ Process* execute_round_robin() {
         print_all_queues();
     }
 
-    printf("Running Process %d | Instruction %d (PC: %d)\n", current_rr_process->pcb->pid, rr_ticks_used + 1, current_rr_process->pcb->pc);
+    int instruction_number = current_rr_process->pcb->pc - current_rr_process->pcb->memory_bounds[0] + 1;
+    if (instruction_number < 1) {
+        instruction_number = rr_ticks_used + 1;
+    }
+    printf("Running Process %d | Instruction %d (PC: %d)\n", current_rr_process->pcb->pid, instruction_number, current_rr_process->pcb->pc);
     swap_in(current_rr_process->pcb->pid);
     sync_pcb_from_memory(current_rr_process->pcb->pid, current_rr_process->pcb);
     current_rr_process->pcb->state = RUNNING;
