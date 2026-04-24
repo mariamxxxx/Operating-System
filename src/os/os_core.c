@@ -6,8 +6,13 @@
 #include "../synchronization/mutex.h"
 #include "../interpreter/interpreter.h"
 
+#ifdef GUI_MODE
 // Link to the GUI logger
-extern void gui_log(const char* format, ...);
+extern void gui_log(const char *format, ...);
+#define LOGF(...) gui_log(__VA_ARGS__)
+#else
+#define LOGF(...) printf(__VA_ARGS__)
+#endif
 
 // Memory module is currently included through inconsistent headers, so we forward declare.
 void init_memory(void);
@@ -32,7 +37,7 @@ void os_init(SchedulerAlgorithm algorithm) {
     init_mutex();
 
     g_is_initialized = 1;
-    gui_log("[OS_CORE] System initialized. Algorithm: %d", algorithm);
+    LOGF("[OS_CORE] System initialized. Algorithm: %d\n", algorithm);
 }
 
 void os_reset(void) {
@@ -49,17 +54,17 @@ void os_reset(void) {
     init_scheduler();
     init_mutex();
     
-    gui_log("[OS_CORE] System reset to tick 0.");
+    LOGF("[OS_CORE] System reset to tick 0.\n");
 }
 
 void os_start(void) {
     g_is_running = 1;
-    gui_log("[OS_CORE] Execution started.");
+    LOGF("[OS_CORE] Execution started.\n");
 }
 
 void os_pause(void) {
     g_is_running = 0;
-    gui_log("[OS_CORE] Execution paused.");
+    LOGF("[OS_CORE] Execution paused.\n");
 }
 
 int os_is_running(void) {
@@ -71,7 +76,7 @@ int os_step(void) {
     int executed_pid = -1;
 
     if (!g_is_initialized) {
-        gui_log("[OS_CORE] Error: Attempted to step before initialization.");
+        LOGF("[OS_CORE] Error: Attempted to step before initialization.\n");
         return -1;
     }
 
@@ -110,7 +115,7 @@ int os_tick(void) {
 void os_set_scheduler_algorithm(SchedulerAlgorithm algorithm) {
     g_algorithm = algorithm;
     set_current_algo(algorithm);
-    gui_log("[OS_CORE] Scheduler algorithm changed to %d", algorithm);
+    LOGF("[OS_CORE] Scheduler algorithm changed to %d\n", algorithm);
 }
 
 SchedulerAlgorithm os_get_scheduler_algorithm(void) {

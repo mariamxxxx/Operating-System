@@ -186,8 +186,13 @@ static char* compat_strtok_r(char* str, const char* delim, char** saveptr) {
 #include "../scheduler/queue.h"
 #include "../process/processs.h"
 
+#ifdef GUI_MODE
 // Link to the GUI logger
-extern void gui_log(const char* format, ...);
+extern void gui_log(const char *format, ...);
+#define LOGF(...) gui_log(__VA_ARGS__)
+#else
+#define LOGF(...) printf(__VA_ARGS__)
+#endif
 
 int CountLines(char* rawData) {
     int countLines = 0;
@@ -282,11 +287,11 @@ static char** SplitInstruction(char* line, int *count) {
 // }
 
 static char* parseLineToOpcode(char* line) {
-    gui_log("[TRANSLATE] Parsing line: \"%s\"", line);
+    LOGF("[TRANSLATE] Parsing line: \"%s\"\n", line);
     int token_count = 0;
     char *line_copy = strdup(line);
     if (line_copy == NULL) {
-        gui_log("[ERROR] Memory allocation failed during instruction parsing.");
+        LOGF("[ERROR] Memory allocation failed during instruction parsing.\n");
         return NULL;
     }
 
@@ -325,7 +330,7 @@ static char* parseLineToOpcode(char* line) {
         strcat(result, mapped);
     }
 
-    gui_log("[TRANSLATE] Opcode generated: \"%s\"", result);
+    LOGF("[TRANSLATE] Opcode generated: \"%s\"\n", result);
 
     free(instruction);
     free(line_copy);
@@ -333,9 +338,9 @@ static char* parseLineToOpcode(char* line) {
 }
 
 void parseInstructionsIntoMemory(char* rawData , Process* process) {
-    gui_log("=================================================");
-    gui_log("[LOAD] Loading program into memory | PID = %d", process->pcb->pid);
-    gui_log("=================================================");
+    LOGF("=================================================\n");
+    LOGF("[LOAD] Loading program into memory | PID = %d\n", process->pcb->pid);
+    LOGF("=================================================\n");
 
     char* saveptr;
     char* line = strtok_r(rawData, "\n", &saveptr); // Get first line
@@ -343,77 +348,77 @@ void parseInstructionsIntoMemory(char* rawData , Process* process) {
     int i = 0; 
     
     while (line != NULL) {
-        gui_log("[PARSE] Instruction line %d", i);
+        LOGF("[PARSE] Instruction line %d\n", i);
 
         char* instruction = parseLineToOpcode(line); 
 
         if (instruction != NULL && i < MAX_CODE_LINES) {
             strcpy(process->code_lines[i], instruction);
-            gui_log("[MEMORY] Stored instruction at code_lines[%d]", i);
+            LOGF("[MEMORY] Stored instruction at code_lines[%d]\n", i);
 
             // free(instruction);
             i++;
             process->code_line_count++;
         } else {
-            gui_log("[INFO] Instruction skipped (empty or memory limit reached).");
+            LOGF("[INFO] Instruction skipped (empty or memory limit reached).\n");
         }
 
         line = strtok_r(NULL, "\n", &saveptr); // Get next line
-        gui_log("parseInstructionsIntoMemory: next line: '%s'", line ? line : "NULL");
+        LOGF("parseInstructionsIntoMemory: next line: '%s'\n", line ? line : "NULL");
     }
 
-    gui_log("[MEMORY] Total instructions loaded: %d",process->code_line_count);
+    LOGF("[MEMORY] Total instructions loaded: %d\n",process->code_line_count);
     allocate_memory(process->pcb->pid, process);
-    gui_log("[MEMORY] Memory allocated for PID %d", process->pcb->pid);
+    LOGF("[MEMORY] Memory allocated for PID %d\n", process->pcb->pid);
     add_process_to_scheduler(process);
 
-    gui_log("[SCHEDULER] Process PID %d added to scheduler",process->pcb->pid);
+    LOGF("[SCHEDULER] Process PID %d added to scheduler\n",process->pcb->pid);
 
-    gui_log("=================================================");
-    gui_log("[LOAD] Program loading complete for PID %d", process->pcb->pid);
-    gui_log("=================================================");
+    LOGF("=================================================\n");
+    LOGF("[LOAD] Program loading complete for PID %d\n", process->pcb->pid);
+    LOGF("=================================================\n");
 
     free(rawData); 
 }
 
 extern void loadAndInterpret(char* filename, int arrival_time) { 
-    gui_log("=================================================");
-    gui_log("[LOAD] Loading program file: %s | Arrival time: %d",
-           filename, arrival_time);
-    gui_log("=================================================");
+    LOGF("=================================================\n");
+    LOGF("[LOAD] Loading program file: %s | Arrival time: %d\n",
+        filename, arrival_time);
+    LOGF("=================================================\n");
 
     if (filename == NULL) {
-        gui_log("[ERROR] Filename is NULL. Aborting load.");
+        LOGF("[ERROR] Filename is NULL. Aborting load.\n");
         return;
     }
     
     char* fileContent = readFile(filename);
         
     if (fileContent == NULL) {
-        gui_log("[ERROR] Failed to read file: %s", filename);
+        LOGF("[ERROR] Failed to read file: %s\n", filename);
         return;
     }
 
     Process *process = initProcess(arrival_time);
     if (process == NULL) {
-        gui_log("[ERROR] Process initialization failed.");
+        LOGF("[ERROR] Process initialization failed.\n");
         free(fileContent);
         return;
     }
 
-    gui_log("[INFO] Process created successfully | PID = %d",
+    LOGF("[INFO] Process created successfully | PID = %d\n",
            process->pcb->pid);
 
     char *count_copy = strdup(fileContent);
     if (count_copy != NULL) {
         int lines = CountLines(count_copy);
-        gui_log("[INFO] Program contains %d lines",
+         LOGF("[INFO] Program contains %d lines\n",
                lines);
         free(count_copy);
     }
 
     parseInstructionsIntoMemory(fileContent, process);
-    gui_log("[LOAD] Program %s fully loaded and ready for execution",
+    LOGF("[LOAD] Program %s fully loaded and ready for execution\n",
            filename);
-    gui_log("=================================================");
+    LOGF("=================================================\n");
 }

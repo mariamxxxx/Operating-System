@@ -6,8 +6,13 @@
 #include "../interpreter/interpreter.h"
 #include "../os/os_core.h"
 
+#ifdef GUI_MODE
 // Link to the GUI logger
-extern void gui_log(const char* format, ...);
+extern void gui_log(const char *format, ...);
+#define LOGF(...) gui_log(__VA_ARGS__)
+#else
+#define LOGF(...) printf(__VA_ARGS__)
+#endif
 
 //the global queues for the whole OS
  Queue os_ready_queue;
@@ -28,7 +33,7 @@ void init_scheduler() {
 
 
 void print_all_queues() {
-    gui_log("--- SYSTEM QUEUE STATUS ---");
+    LOGF("--- SYSTEM QUEUE STATUS ---");
 
     char buffer[512];
     int pos = 0;
@@ -42,7 +47,7 @@ void print_all_queues() {
         current = current->next;
     }
     snprintf(buffer + pos, sizeof(buffer) - pos, "]");
-    gui_log("%s", buffer);
+    LOGF("%s", buffer);
 
     // General Blocked Queue
     pos = snprintf(buffer, sizeof(buffer), "Blocked Queue: [");
@@ -53,7 +58,7 @@ void print_all_queues() {
         current = current->next;
     }
     snprintf(buffer + pos, sizeof(buffer) - pos, "]");
-    gui_log("%s", buffer);
+    LOGF("%s", buffer);
 
     //for mlfq
     if(get_current_algo() == MLFQ){
@@ -66,7 +71,7 @@ void print_all_queues() {
                 curr = curr->next;
             }
             snprintf(buffer + pos, sizeof(buffer) - pos, "]");
-            gui_log("%s", buffer);
+            LOGF("%s", buffer);
         }
     }
 }

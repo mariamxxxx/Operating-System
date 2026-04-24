@@ -9,8 +9,13 @@
 #include "../synchronization/mutex.h"
 #include "parser.h"
 
+#ifdef GUI_MODE
 // Link to the GUI logger
-extern void gui_log(const char* format, ...);
+extern void gui_log(const char *format, ...);
+#define LOGF(...) gui_log(__VA_ARGS__)
+#else
+#define LOGF(...) printf(__VA_ARGS__)
+#endif
 
 // 1: last execute bailed on "assign … input" before submit; sim clock/quantum should not advance
 static int s_instruction_stalled_on_input = 0;
@@ -97,67 +102,67 @@ static int parse_resource_token(const char *token) {
 
 void callSemWait(Process *process , int resourceType){
     printf("=================================================\n");
-    gui_log("SemWait: PID %d, Res %d", process->pcb->pid, resourceType);
+    LOGF("SemWait: PID %d, Res %d\n", process->pcb->pid, resourceType);
     semWait(process, (enum RESOURCE) resourceType);
-    printf("SemWait done\n");
+    LOGF("SemWait done\n");
     printf("=================================================\n");
 }
 
 void callSemSignal(int resourceType){
     printf("=================================================\n");
-    gui_log("SemSignal: Res %d", resourceType);
+    LOGF("SemSignal: Res %d\n", resourceType);
     semSignal((enum RESOURCE) resourceType);
-    gui_log("SemSignal done");
+    LOGF("SemSignal done\n");
     printf("=================================================\n");
 }
 
 void callAssign(int pid , char* varName, char* varValue){
     printf("=================================================\n");
-    gui_log("Assign: PID %d, %s = %s", pid, varName, varValue);
+    LOGF("Assign: PID %d, %s = %s\n", pid, varName, varValue);
     if (varValue == NULL) {
-        gui_log("Assign: NULL value, skipping assignment");
+        LOGF("Assign: NULL value, skipping assignment\n");
         return;
     }
     writeToMemory(pid, varName, varValue);
-    gui_log("Assign done");
+    LOGF("Assign done\n");
     printf("=================================================\n");
 }
 
 void callPrint(char* data){
     printf("=================================================\n");
-    gui_log("Print: %s", data);
+    LOGF("Print: %s\n", data);
     if (data == NULL) {
         printData("(null)");
     } else {
         printData(readFromMemory(global_pid, data));
     }
-    gui_log("Print done");
+    LOGF("Print done\n");
     printf("=================================================\n");
 }
 
 void callPrintFromTo(int from, int to){
     printf("=================================================\n");
-    gui_log("PrintFromTo: %d to %d", from, to);
+    LOGF("PrintFromTo: %d to %d\n", from, to);
     while(from<=to){
         char buffer[20];
         sprintf(buffer, "%d", from);
         printData(buffer);
         from++;
     }
-    gui_log("PrintFromTo done");
+    LOGF("PrintFromTo done\n");
     printf("=================================================\n");
 }
 
 void callWriteFile(char* filename, char* content){
     printf("=================================================\n");
-    gui_log("WriteFile: %s", filename);
+    LOGF("WriteFile: %s\n", filename);
     char* contentValue = readFromMemory(global_pid, content);
     if (contentValue == NULL) {
-        gui_log("Variable %s not found, skipping writeFile", content);
+        LOGF("Variable %s not found, skipping writeFile\n", content);
         return;
     }
     writeFile( readFromMemory(global_pid, filename), contentValue);
-    gui_log("WriteFile done");
+    LOGF("WriteFile done\n");
     printf("=================================================\n");
 }
 
@@ -165,16 +170,16 @@ char* callReadFile(char* filename){
     printf("=================================================\n");
     char* resolved_filename = readFromMemory(global_pid, filename);
     if (resolved_filename == NULL || resolved_filename[0] == '\0') {
-        gui_log("ReadFile: variable %s not found or empty for process id %d", filename, global_pid);
+        LOGF("ReadFile: variable %s not found or empty for process id %d\n", filename, global_pid);
         return strdup("");
     }
     printf("ReadFile: %s\n", resolved_filename);
     char* result = readFile(resolved_filename);
     if (result == NULL) {
-        gui_log("ReadFile: could not open file %s", resolved_filename);
+        LOGF("ReadFile: could not open file %s\n", resolved_filename);
         return strdup("");
     }
-    gui_log("ReadFile: got file content");
+    LOGF("ReadFile: got file content\n");
     printf("=================================================\n");
     return result;
 
@@ -182,34 +187,35 @@ char* callReadFile(char* filename){
 
 char* callTakeInput(){
     printf("=================================================\n");
-    gui_log("TakeInput");
+    LOGF("TakeInput\n");
     char* result = takeInput();
-    gui_log("Input: %s", result);
+    LOGF("Input: %s\n", result);
     printf("=================================================\n");
     return result;
 }
 
 // [Keep the top of your parser.c identical up to execute_instruction]
 
+#ifdef GUI_MODE
 extern bool input_submitted; // Link to the GUI flag
+#endif
 
 void execute_instruction(Process* process) { 
     instruction_clear_stall();
     global_pid = process->pcb->pid;
 
-    gui_log("Exec: PID %d", process->pcb->pid);
+    LOGF("Exec: PID %d\n", process->pcb->pid);
     if (process == NULL || process->pcb == NULL) {
-    printf("[ERROR] Attempted to execute a NULL process.\n");        
-    return;
-        gui_log("Exec: NULL process");
+        printf("[ERROR] Attempted to execute a NULL process.\n");
+        LOGF("Exec: NULL process\n");
         return;
     }
 
-    gui_log("Exec: PC %d", process->pcb->pc);
+    LOGF("Exec: PC %d\n", process->pcb->pc);
     
     if (process->pcb->pc < process->pcb->memory_bounds[0] + 7 ||
         process->pcb->pc > process->pcb->memory_bounds[1]) {
-        gui_log("Exec: PC %d out of process bounds [%d, %d], marking FINISHED",
+        LOGF("Exec: PC %d out of process bounds [%d, %d], marking FINISHED\n",
                process->pcb->pc,
                process->pcb->memory_bounds[0],
                process->pcb->memory_bounds[1]);
@@ -220,24 +226,24 @@ void execute_instruction(Process* process) {
 
     printf("\n=================================================\n");
     printf("[RUN] Executing Process PID = %d | PC = %d\n",process->pcb->pid, process->pcb->pc);
-    printf("=================================================\n");    char* instruction = readInstruction(process->pcb->pc);
+    printf("=================================================\n");  
     char* instruction = readInstruction(process->pcb->pc);
 
     if (instruction == NULL) {
-        gui_log("[INFO] No instruction found. Process %d has finished execution.",process->pcb->pid);
+        LOGF("[INFO] No instruction found. Process %d has finished execution.\n",process->pcb->pid);
         process->pcb->state = FINISHED;
         update_state_in_memory(process->pcb->pid, FINISHED);
-        gui_log("Execution Error: No instruction found at PC %d", process->pcb->pc);
+        LOGF("Execution Error: No instruction found at PC %d\n", process->pcb->pc);
         return;
     }
 
-    gui_log("[FETCH] Instruction: \"%s\"", instruction);
+    LOGF("[FETCH] Instruction: \"%s\"\n", instruction);
     int count = 0;
     char** parts = splitAndReverse(instruction, &count);
 
-    gui_log("Exec: Parts");
+    LOGF("Exec: Parts\n");
     for (int i = 0; i < count; i++) {
-        gui_log("[DECODE] Instruction parts (processed right-to-left):\n");
+        LOGF("[DECODE] Instruction parts (processed right-to-left):\n");
         printf("  -> Part[%d]: %s", i, parts[i]);
         char* part = parts[i];
 
@@ -247,52 +253,53 @@ void execute_instruction(Process* process) {
             if (i>=1){
                 int resourceType = parse_resource_token(parts[i-1]);
                 if (resourceType == 0 || resourceType == 1 || resourceType == 2)  { callSemWait(process, resourceType); } 
-                else { gui_log("Syntax Error: Invalid resource type '%s' for semWait in instruction %s", parts[i-1], instruction); }
+                else { LOGF("Syntax Error: Invalid resource type '%s' for semWait in instruction %s\n", parts[i-1], instruction); }
             }
-            else { gui_log("Syntax Error: Missing resource type for semWait in instruction %s", instruction); }
+            else { LOGF("Syntax Error: Missing resource type for semWait in instruction %s\n", instruction); }
         }
         if (strcmp(part, "001") == 0 ){
             if (i>=1){
                 int resourceType = parse_resource_token(parts[i-1]);
                 if (resourceType == 0 || resourceType == 1 || resourceType == 2)  { callSemSignal(resourceType); } 
-                else { gui_log("Syntax Error: Invalid resource type '%s' for semSignal in instruction %s", parts[i-1], instruction); }
+                else { LOGF("Syntax Error: Invalid resource type '%s' for semSignal in instruction %s\n", parts[i-1], instruction); }
             }
-            else { gui_log("Syntax Error: Missing resource type for semSignal in instruction %s", instruction); }
+            else { LOGF("Syntax Error: Missing resource type for semSignal in instruction %s\n", instruction); }
         }
         if (strcmp(part, "010") == 0 ){
             if (i>=2){ callAssign(process->pcb->pid, parts[i-1], parts[i-2]); }
-            else { gui_log("Syntax Error: Missing variable name or value for assign in instruction %s", instruction); }
+            else { LOGF("Syntax Error: Missing variable name or value for assign in instruction %s\n", instruction); }
         }
         if (strcmp(part, "011") == 0 ){
             if (i>=1){ callPrint(parts[i-1]); }
-            else { gui_log("Syntax Error: Missing data to print for print in instruction %s", instruction); }
+            else { LOGF("Syntax Error: Missing data to print for print in instruction %s\n", instruction); }
         }
         if (strcmp(part, "100") == 0 ){
             if (i>=2){
                 char* from_str = readFromMemory(global_pid, parts[i-1]);
                 char* to_str = readFromMemory(global_pid, parts[i-2]);
-                gui_log("Exec: printFromTo from_var='%s' from_val='%s', to_var='%s' to_val='%s'", 
+                LOGF("Exec: printFromTo from_var='%s' from_val='%s', to_var='%s' to_val='%s'\n", 
                        parts[i-1], from_str ? from_str : "NULL", parts[i-2], to_str ? to_str : "NULL");
                 int from = from_str ? atoi(from_str) : 0;
                 int to = to_str ? atoi(to_str) : 0;
-                gui_log("Exec: printFromTo from=%d, to=%d", from, to);
+                LOGF("Exec: printFromTo from=%d, to=%d\n", from, to);
                 callPrintFromTo(from, to);
             }
-            else { gui_log("Syntax Error: Missing range values for printFromTo in instruction %s", instruction); }
+            else { LOGF("Syntax Error: Missing range values for printFromTo in instruction %s\n", instruction); }
         }
         if (strcmp(part, "101") == 0 ){
             if (i>=2){ callWriteFile(parts[i-1], parts[i-2]); }
-            else { gui_log("Syntax Error: Missing filename or content for writeFile in instruction %s", instruction); }
+            else { LOGF("Syntax Error: Missing filename or content for writeFile in instruction %s\n", instruction); }
         }
         if (strcmp(part, "110") == 0 ){
             if (i>=1){ parts[i] = callReadFile(parts[i-1]); }
-            else { gui_log("Syntax Error: Missing filename for readFile in instruction %s", instruction); }
+            else { LOGF("Syntax Error: Missing filename for readFile in instruction %s\n", instruction); }
         }
         if (strcmp(part, "input") == 0 ){
+#ifdef GUI_MODE
             // If the user hasn't hit ENTER yet, abort and try again; one logical clock
             // tick is charged only when the instruction completes (see os_step / schedulers).
             if (!input_submitted) {
-                gui_log("Process %d is goint to take input, please press enter ", process->pcb->pid);
+                LOGF("Process %d is goint to take input, please press enter \n", process->pcb->pid);
                 free_parts(parts, count);
                 s_instruction_stalled_on_input = 1;
                 return; // Return WITHOUT advancing the Program Counter (PC)!
@@ -301,6 +308,9 @@ void execute_instruction(Process* process) {
                 parts[i] = callTakeInput();
                 input_submitted = false; // Reset the flag
             }
+#else
+            parts[i] = callTakeInput();
+#endif
         }
     }
     
@@ -314,7 +324,7 @@ void execute_instruction(Process* process) {
     
     //gui
     if (process->pcb->pc > process->pcb->memory_bounds[1]) {
-        gui_log("Process %d FINISHED (reached end of memory bounds)", process->pcb->pid);
+        LOGF("Process %d FINISHED (reached end of memory bounds)\n", process->pcb->pid);
         process->pcb->state = FINISHED;
         update_state_in_memory(process->pcb->pid, FINISHED);
         return;
@@ -323,7 +333,8 @@ void execute_instruction(Process* process) {
     char* next_instruction = readInstruction(process->pcb->pc);
 
     if (next_instruction == NULL) {
-gui_log("\n[INFO] Process %d has completed all instructions.",process->pcb->pid);        process->pcb->state = FINISHED;
+        LOGF("[INFO] Process %d has completed all instructions.\n",process->pcb->pid);
+        process->pcb->state = FINISHED;
         update_state_in_memory(process->pcb->pid, FINISHED);
         return;
     }

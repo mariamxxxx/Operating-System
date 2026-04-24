@@ -10,9 +10,7 @@ Queue mlfq_queues[4];
 static Process *current_mlfq_process = NULL;
 static int current_mlfq_level = -1;
 static int mlfq_ticks_used = 0;
-static Process *current_mlfq_process = NULL;
-static int current_mlfq_level = -1;
-static int mlfq_ticks_used = 0;
+
 
 void init_mlfq() {
     for (int i = 0; i < 4; i++) {

@@ -8,8 +8,13 @@
 #include <stdarg.h>
 #include "../os/os_core.h"
 
+#ifdef GUI_MODE
 // Link to the GUI logger
-extern void gui_log(const char* format, ...);
+extern void gui_log(const char *format, ...);
+#define LOGF(...) gui_log(__VA_ARGS__)
+#else
+#define LOGF(...) printf(__VA_ARGS__)
+#endif
  
 Process *execute_hrrn() {
    
@@ -18,7 +23,7 @@ Process *execute_hrrn() {
     Process *current = os_get_running_process();
     if (current == NULL) {
         if (is_empty(&os_ready_queue)) {
-            gui_log("Scheduler: no proccesses in the ready queue");
+            LOGF("Scheduler: no proccesses in the ready queue");
             return NULL; 
         }
         
@@ -36,7 +41,7 @@ Process *execute_hrrn() {
             if (burst < 1) burst = 1; 
             
             double ratio = (double)(wait + burst) / burst;
-            gui_log("  P%d: wait=%d  burst=%d  ratio=%.2f", p->pcb->pid, wait, burst, ratio);
+            LOGF("  P%d: wait=%d  burst=%d  ratio=%.2f", p->pcb->pid, wait, burst, ratio);
  
             if (ratio > myrate) {
                 myrate = ratio;
@@ -54,12 +59,12 @@ Process *execute_hrrn() {
         current->wait_time += os_get_clock() - current->ready_since;
         if (current->wait_time < 0) current->wait_time = 0;
  
-        gui_log("HRRN: Selected Process %d (Ratio: %.2f)", current->pcb->pid, myrate);
+        LOGF("HRRN: Selected Process %d (Ratio: %.2f)", current->pcb->pid, myrate);
         print_all_queues(); 
     }
  
     //Execute EXACTLY ONE instruction (Matches 1 OS clock tick)
-    gui_log("Running Process %d | PC: %d", current->pcb->pid, current->pcb->pc);
+    LOGF("Running Process %d | PC: %d", current->pcb->pid, current->pcb->pc);
     swap_in(current->pcb->pid);
     sync_pcb_from_memory(current->pcb->pid, current->pcb);
     current->pcb->state = RUNNING;
@@ -74,14 +79,14 @@ Process *execute_hrrn() {
  
     //Handle State Changes
     if (current->pcb->state == FINISHED) {
-        gui_log("Process %d has finished.", current->pcb->pid);
+        LOGF("Process %d has finished.", current->pcb->pid);
         update_state_in_memory(current->pcb->pid, FINISHED);
         print_all_queues(); 
         return current; 
     }    
     
     if (current->pcb->state == BLOCKED) {
-       gui_log("Process %d is blocked", current->pcb->pid);
+       LOGF("Process %d is blocked", current->pcb->pid);
        update_state_in_memory(current->pcb->pid, BLOCKED);
        print_all_queues(); 
        

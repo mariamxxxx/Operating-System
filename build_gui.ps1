@@ -15,6 +15,7 @@ if (-not (Test-Path $buildDir)) {
 }
 
 $commonSources = @(
+    "src/main.c",
     "src/process/process.c",
     "src/os/syscalls.c",
     "src/os/os_core.c",
@@ -55,7 +56,7 @@ $backendLibs = if ($Backend -eq "raylib") {
 
 Write-Host "Building GUI backend: $Backend"
 
-$compileArgs = @("-g") + $includeDirs + $sources + @("-o", $outExe) + $backendLibs + @("-pthread")
+$compileArgs = @("-g", "-DGUI_MODE") + $includeDirs + $sources + @("-o", $outExe) + $backendLibs + @("-pthread")
 & $compiler @compileArgs
 
 if ($LASTEXITCODE -ne 0) {

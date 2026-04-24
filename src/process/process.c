@@ -3,8 +3,6 @@
 #include <string.h>
 #include <stdarg.h>
 
-// Link to the GUI logger (ready for use if you ever need to add logs here)
-extern void gui_log(const char* format, ...);
 
 int next_pid = 1; // Start IDs at 1
 

@@ -14,8 +14,13 @@
 #define SWAP_DIR "src/disk"
 MemoryWord mem[MEMORY_SIZE];
 
+#ifdef GUI_MODE
 // Link to the GUI logger
-extern void gui_log(const char* format, ...);
+extern void gui_log(const char *format, ...);
+#define LOGF(...) gui_log(__VA_ARGS__)
+#else
+#define LOGF(...) printf(__VA_ARGS__)
+#endif
 
 // HELPERS
 // build the file path for the swap file of a given PID.

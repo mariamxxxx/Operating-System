@@ -9,9 +9,13 @@
 #include "syscalls.h"
 #include "../memory/memoryy.h"
 
-// Link to the GUI logger and GUI input buffer
-extern void gui_log(const char* format, ...);
-extern char input_text[];
+#ifdef GUI_MODE
+extern void gui_log(const char *format, ...);
+extern char input_text[100];
+#define LOGF(...) gui_log(__VA_ARGS__)
+#else
+#define LOGF(...) printf(__VA_ARGS__)
+#endif
 
 static void ensure_disk_dir_exists(void) {
 #if defined(_WIN32)
@@ -42,7 +46,7 @@ char* readFile(char* filename){ //read file
 
     FILE* f= fopen(path,"rb");
     if(f==NULL){
-        gui_log("File not found");
+        LOGF("File not found\n");
         return NULL;
     }
 
@@ -72,7 +76,7 @@ int writeFile(char* filename, char* content){ //write in file
 
     FILE* f= fopen(path,"w");
     if(f==NULL){
-        gui_log("ERROR: could not open file for writing");
+        LOGF("ERROR: could not open file for writing\n");
         return -1;
     }
     fprintf(f, "%s", content);
@@ -81,57 +85,42 @@ int writeFile(char* filename, char* content){ //write in file
 }
 
 void printData(char* data ){ //print values
-    gui_log("Printed value: %s ", data);
+    LOGF("Printed value: %s\n", data);
 }
 
 // [Keep everything else identical]
 
-char* takeInput(){ 
+char* takeInput(){
     char* input = (char*) malloc(100);
-    gui_log("Enter input: ");
-    
+#ifdef GUI_MODE
+    LOGF("Enter input: ");
     // Copy the guaranteed ready text
     strncpy(input, input_text, 99);
-    input[99] = '\0';
-    
+     input[99] = '\0';
     // Wipe the GUI text box clean now that it's consumed
-    input_text[0] = '\0'; 
+    input_text[0] = '\0';
+#else
+    printf("Enter input: ");
+    if (fgets(input, 100, stdin) == NULL) {
+        input[0] = '\0';
+    }
+#endif
 
-    int len = strlen(input); 
-    if (len>0 && input[len-1] =='\n')
-        input[len-1] ='\0';
+    int len = strlen(input);
+    if (len > 0 && input[len - 1] == '\n')
+        input[len - 1] = '\0';
     return input;
 }
-
-// [Keep everything else identical]
-
-// char* takeInput(){ //take input from user
-//     char* input = (char*) malloc(100);
-//     gui_log("Enter input: "); // Exact print statement preserved
-    
-//     // Instead of freezing the GUI with fgets(..., stdin), 
-//     // we copy whatever you typed into the GUI's input box!
-//     strncpy(input, input_text, 99);
-//     input[99] = '\0';
-    
-//     // Clear the GUI input buffer after reading it so we don't read it twice
-//     input_text[0] = '\0';
-
-//     int len = strlen(input); //here we remove \n if present
-//     if (len>0 && input[len-1] =='\n')
-//         input[len-1] ='\0';
-//     return input;
-// }
 
 char* readFromMemory(int pid, char* varName){//read data from memory
 //ASSUMING READ_WORD WILL BE IMPLEMENTED IN MEMORY.C
     char* res= read_word(pid, varName);
 
     if (res==NULL){
-        gui_log("Variable %s not found in memory for process id %d", varName, pid);
+        LOGF("Variable %s not found in memory for process id %d\n", varName, pid);
         return NULL;}
 
-    gui_log("Variable %s found in memory for process id %d with value: %s", varName,pid, res);
+    LOGF("Variable %s found in memory for process id %d with value: %s\n", varName,pid, res);
     return res;
 
 }
@@ -139,7 +128,7 @@ char* readFromMemory(int pid, char* varName){//read data from memory
 void writeToMemory(int pid, char* varName, char* varValue){ //write data to memory
 //ASSUMING WRITE__WORD WILL BE IMPLEMENTED IN MEMORY.C
     write_word(pid, varName, varValue);
-    gui_log("Variable %s with value %s written to memory for process id %d", varName, varValue, pid);
+    LOGF("Variable %s with value %s written to memory for process id %d\n", varName, varValue, pid);
 }
 
 char* readInstruction(int pc){

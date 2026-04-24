@@ -3,8 +3,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-// Link to the GUI logger if we ever need structural debugging
-extern void gui_log(const char* format, ...);
+
 
 void init_queue(Queue *q) {
     q->head = NULL;

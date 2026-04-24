@@ -45,7 +45,12 @@ static bool program_1_loaded = false;
 static bool program_2_loaded = false;
 static bool program_3_loaded = false;
 
-void gui_log(const char *format, ...);
+void gui_log(const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    vprintf(format, args);
+    va_end(args);
+}
 
 static bool submit_input_if_ready(void) {
     if (!is_waiting_for_input || strlen(input_text) == 0) {
@@ -132,22 +137,22 @@ static void capture_input_var_hint_from_log_line(const char *line) {
 static void load_arrivals_for_current_tick(void) {
     int tick = os_get_clock();
 
-    /* Keep arrival ticks aligned with ProgramSpec in src/main.c (old_main). */
+    /* Keep arrival ticks aligned with CLI main. */
     if (!program_3_loaded && tick >= 4) {
-        loadAndInterpret("src/programs/Program_3.txt", 1);
-        gui_log(">> Auto-loaded Program_3 at arrival tick 1");
+        loadAndInterpret("src/programs/Program_3.txt", 4);
+        gui_log(">> Auto-loaded Program_3 at arrival tick 4");
         program_3_loaded = true;
     }
 
     if (!program_1_loaded && tick >= 0) {
-        loadAndInterpret("src/programs/Program_1.txt", 3);
-        gui_log(">> Auto-loaded Program_1 at arrival tick 3");
+        loadAndInterpret("src/programs/Program_1.txt", 0);
+        gui_log(">> Auto-loaded Program_1 at arrival tick 0");
         program_1_loaded = true;
     }
 
     if (!program_2_loaded && tick >= 1) {
-        loadAndInterpret("src/programs/Program_2.txt", 4);
-        gui_log(">> Auto-loaded Program_2 at arrival tick 4");
+        loadAndInterpret("src/programs/Program_2.txt", 1);
+        gui_log(">> Auto-loaded Program_2 at arrival tick 1");
         program_2_loaded = true;
     }
 }
@@ -246,9 +251,7 @@ static void draw_queue_visualized(SDL_Renderer *r, TTF_Font *title_font, TTF_Fon
     }
 }
 
-int main(int argc, char **argv) {
-
-    
+int gui_run(int argc, char **argv) {
     SchedulerAlgorithm selected_algo = HRRN;
     bool initialized = false, running = true;
     bool auto_run = false;
