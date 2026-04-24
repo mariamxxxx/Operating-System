@@ -35,6 +35,7 @@ Process* execute_round_robin() {
     sync_pcb_from_memory(current_rr_process->pcb->pid, current_rr_process->pcb);
     current_rr_process->pcb->state = RUNNING;
     update_state_in_memory(current_rr_process->pcb->pid, RUNNING);
+    print_memory();
     execute_instruction(current_rr_process);
 
     if (current_rr_process->pcb->state == FINISHED) {

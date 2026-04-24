@@ -60,6 +60,7 @@ Process *execute_hrrn() {
     sync_pcb_from_memory(current->pcb->pid, current->pcb);
     current->pcb->state = RUNNING;
     update_state_in_memory(current->pcb->pid, RUNNING);
+    print_memory();
     execute_instruction(current);
 
     //Handle State Changes
