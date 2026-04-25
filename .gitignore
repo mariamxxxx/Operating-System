@@ -35,6 +35,7 @@ out/
 *.swp
 *.swo
 *.swap
+gui_log.txt
 # OS files
 Thumbs.db
 ehthumbs.db
