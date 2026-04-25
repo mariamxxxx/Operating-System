@@ -350,7 +350,7 @@ void swap_out(int pid, int word_count){
     }
 
     fclose(file);
-    // print_swap_file(pid, "OUT");
+    print_swap_file(pid, "OUT");
     free_process_memory(pid);
 }
 
@@ -384,7 +384,7 @@ void swap_in(int pid){
     }
 
     fclose(file);
-    // print_swap_file(pid, "IN");
+    print_swap_file(pid, "IN");
     remove(path);
 
     // update stale addresses
