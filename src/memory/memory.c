@@ -397,6 +397,23 @@ void swap_in(int pid){
 
 }
 
+static const char* state_name2(int r){
+    switch (r) {
+        case 0:
+            return "NEW";
+        case 1:
+            return "READY";
+        case 2:
+            return "RUNNING";
+        case 3:
+            return "BLOCKED";
+        case 4:
+            return "FINISHED";
+        default:
+            return "SWAPPED";
+    }
+}
+
 void print_memory(){
     printf("\n--- MEMORY DUMP ---\n");
     for (int i = 0; i < MEMORY_SIZE; i++){
@@ -412,7 +429,7 @@ void print_memory(){
                        i, mem[i].ownerPid, mem[i].payload.code_line);
             } else {
                 printf("[%d] PID=%d pid=%d\n", i, mem[i].ownerPid, mem[i].ownerPid);
-                printf("[%d] PID=%d state=%s\n", i+1, mem[i].ownerPid, mem[i+1].payload.state);
+                printf("[%d] PID=%d state=%s\n", i+1, mem[i].ownerPid, state_name2(mem[i+1].payload.state));
                 printf("[%d] PID=%d pc=%d\n", i+2, mem[i].ownerPid, mem[i+2].payload.program_counter);
                 printf("[%d] PID=%d bounds=[%d, %d]\n", i+3, mem[i].ownerPid,
                        mem[i+3].payload.memory_boundary[0], mem[i+3].payload.memory_boundary[1]);
@@ -421,6 +438,24 @@ void print_memory(){
         }
     }
 }
+
+
+// static const char* state_name2(enum ProcessState r){
+//     switch (r) {
+//         case NEW:
+//             return "NEW";
+//         case READY:
+//             return "READY";
+//         case RUNNING:
+//             return "RUNNING";
+//         case BLOCKED:
+//             return "BLOCKED";
+//         case FINISHED:
+//             return "FINISHED";
+//         default:
+//             return "SWAPPED";
+//     }
+// }
 
 static void print_swap_file(int pid, const char *action){
     char path[MAX_STRING];
