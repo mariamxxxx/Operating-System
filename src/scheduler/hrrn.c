@@ -1,7 +1,9 @@
 #include "scheduler.h"
+#include "../gui/gui.h"
 #include "../interpreter/interpreter.h"
 #include "../process/processs.h"
 #include "../memory/memoryy.h"
+#include "../os/syscalls.h"
 #include "queue.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,7 +53,12 @@ Process *execute_hrrn() {
         if (current->wait_time < 0) current->wait_time = 0;
 
         printf("HRRN: Selected Process %d (Ratio: %.2f)\n", current->pcb->pid, myrate);
-        print_all_queues(); 
+        {
+            char event[128];
+            snprintf(event, sizeof(event), "Selected P%d (HRRN)", current->pcb->pid);
+            gui_note_event(event);
+            gui_print_queues(event);
+        }
     }
 
     //Execute EXACTLY ONE instruction (Matches 1 OS clock tick)
@@ -60,21 +67,35 @@ Process *execute_hrrn() {
     sync_pcb_from_memory(current->pcb->pid, current->pcb);
     current->pcb->state = RUNNING;
     update_state_in_memory(current->pcb->pid, RUNNING);
-    print_memory();
+    {
+        GuiTimesliceInfo slice = {-1, -1};
+        char *instruction = readInstruction(current->pcb->pc);
+        gui_render_tick(current, instruction, slice);
+    }
     execute_instruction(current);
 
     //Handle State Changes
     if (current->pcb->state == FINISHED) {
         printf("Process %d has finished.\n", current->pcb->pid);
         update_state_in_memory(current->pcb->pid, FINISHED);
-        print_all_queues(); 
+        {
+            char event[128];
+            snprintf(event, sizeof(event), "P%d finished", current->pcb->pid);
+            gui_note_event(event);
+            gui_print_queues(event);
+        }
         return current; 
     }    
     
     if (current->pcb->state == BLOCKED) {
        printf("Process %d is blocked\n", current->pcb->pid);
        update_state_in_memory(current->pcb->pid, BLOCKED);
-       print_all_queues(); 
+         {
+              char event[128];
+              snprintf(event, sizeof(event), "P%d blocked", current->pcb->pid);
+              gui_note_event(event);
+              gui_print_queues(event);
+         }
        
        // CRITICAL: Return NULL so os_step knows the CPU is free! 
        // If you return `current` here, the OS will get stuck trying to run a blocked process.

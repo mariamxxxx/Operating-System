@@ -1,6 +1,8 @@
 #include "scheduler.h"
+#include "../gui/gui.h"
 #include "../interpreter/interpreter.h"
 #include "../memory/memoryy.h"
+#include "../os/syscalls.h"
 #include <stdio.h>
 #include <math.h>
 
@@ -30,6 +32,12 @@ Process* execute_mlfq() {
                 current_mlfq_process = dequeue(&mlfq_queues[i]);
                 current_mlfq_level = i;
                 mlfq_ticks_used = 0;
+                {
+                    char event[128];
+                    snprintf(event, sizeof(event), "Selected P%d (MLFQ Q%d)", current_mlfq_process->pcb->pid, current_mlfq_level);
+                    gui_note_event(event);
+                    gui_print_queues(event);
+                }
                 break;
             }
         }
@@ -48,26 +56,40 @@ Process* execute_mlfq() {
     sync_pcb_from_memory(current_mlfq_process->pcb->pid, current_mlfq_process->pcb);
     current_mlfq_process->pcb->state = RUNNING;
     update_state_in_memory(current_mlfq_process->pcb->pid, RUNNING);
-    print_memory();
+    {
+        GuiTimesliceInfo slice = {quantum, current_mlfq_level};
+        char *instruction = readInstruction(current_mlfq_process->pcb->pc);
+        gui_render_tick(current_mlfq_process, instruction, slice);
+    }
     execute_instruction(current_mlfq_process);
 
     if (current_mlfq_process->pcb->state == FINISHED) {
         printf("Process %d has finished\n", current_mlfq_process->pcb->pid);
         update_state_in_memory(current_mlfq_process->pcb->pid, FINISHED);
+        {
+            char event[128];
+            snprintf(event, sizeof(event), "P%d finished", current_mlfq_process->pcb->pid);
+            gui_note_event(event);
+            gui_print_queues(event);
+        }
         current_mlfq_process = NULL;
         current_mlfq_level = -1;
         mlfq_ticks_used = 0;
-        print_all_queues();
         return NULL;
     }
 
     if (current_mlfq_process->pcb->state == BLOCKED) {
         printf("Process %d is blocked\n", current_mlfq_process->pcb->pid);
         update_state_in_memory(current_mlfq_process->pcb->pid, BLOCKED);
+        {
+            char event[128];
+            snprintf(event, sizeof(event), "P%d blocked", current_mlfq_process->pcb->pid);
+            gui_note_event(event);
+            gui_print_queues(event);
+        }
         current_mlfq_process = NULL;
         current_mlfq_level = -1;
         mlfq_ticks_used = 0;
-        print_all_queues();
         return NULL;
     }
 
@@ -81,10 +103,15 @@ Process* execute_mlfq() {
         
         enqueue(current_mlfq_process, &mlfq_queues[next_level]);
         printf("P%d used full quantum. Moving to Queue %d.\n", current_mlfq_process->pcb->pid, next_level);
+        {
+            char event[128];
+            snprintf(event, sizeof(event), "P%d demoted to Q%d", current_mlfq_process->pcb->pid, next_level);
+            gui_note_event(event);
+            gui_print_queues(event);
+        }
         current_mlfq_process = NULL;
         current_mlfq_level = -1;
         mlfq_ticks_used = 0;
-        print_all_queues();
     }
 
     return current_mlfq_process;

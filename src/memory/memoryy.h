@@ -41,6 +41,8 @@ typedef struct
 } MemoryWord;
 // each process: 3 vars, code, pcb elements
 
+extern MemoryWord mem[MEMORY_SIZE];
+
 
 // frees all slots, sets owner_pids to 0
 void init_memory();

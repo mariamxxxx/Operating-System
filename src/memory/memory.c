@@ -1,4 +1,5 @@
 #include "memoryy.h"
+#include "../gui/gui.h"
 #include "../process/pcb.h"
 #include "../process/processs.h"
 #include <stdio.h>
@@ -350,7 +351,9 @@ void swap_out(int pid, int word_count){
     }
 
     fclose(file);
-    // print_swap_file(pid, "OUT");
+    printf("SWAP OUT: PID %d (%d words)\n", pid, word_count);
+    gui_note_swap(pid, "OUT");
+    print_swap_file(pid, "OUT");
     free_process_memory(pid);
 }
 
@@ -384,7 +387,9 @@ void swap_in(int pid){
     }
 
     fclose(file);
-    // print_swap_file(pid, "IN");
+    printf("SWAP IN: PID %d (%d words)\n", pid, word_count);
+    gui_note_swap(pid, "IN");
+    print_swap_file(pid, "IN");
     remove(path);
 
     // update stale addresses

@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #endif
 #include "syscalls.h"
+#include "../gui/gui.h"
 #include "../memory/memoryy.h"
 
 static void ensure_disk_dir_exists(void) {
@@ -78,9 +79,24 @@ int writeFile(char* filename, char* content){ //write in file
 
 void printData(char* data ){ //print values
     printf("Printed value: %s \n", data);
+    if (data != NULL) {
+        char buffer[256];
+        snprintf(buffer, sizeof(buffer), "OUTPUT: %s", data);
+        gui_log_output(buffer);
+    }
 }
 
 char* takeInput(){ //take input from user
+    if (gui_is_initialized()) {
+        char *gui_value = gui_prompt_input("Enter input for the running process");
+        if (gui_value != NULL) {
+            char buffer[256];
+            snprintf(buffer, sizeof(buffer), "INPUT: %s", gui_value);
+            gui_log_output(buffer);
+            return gui_value;
+        }
+    }
+
     char* input = (char*) malloc(100);
     printf("Enter input: ");
     fgets(input, 100, stdin);

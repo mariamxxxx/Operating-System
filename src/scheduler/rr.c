@@ -1,6 +1,8 @@
-#include"scheduler.h"
+#include "scheduler.h"
+#include "../gui/gui.h"
 #include "../interpreter/interpreter.h" // To call the instruction execution
 #include "../memory/memoryy.h"
+#include "../os/syscalls.h"
 #include <stdio.h>
 #include "../process/processs.h"
 
@@ -23,7 +25,12 @@ Process* execute_round_robin() {
         current_rr_process = dequeue(&os_ready_queue);
         rr_ticks_used = 0;
         printf("Scheduler: process %d using is selected for execution using Round Robin Algorithm\n", current_rr_process->pcb->pid);
-        print_all_queues();
+        {
+            char event[128];
+            snprintf(event, sizeof(event), "Selected P%d (RR)", current_rr_process->pcb->pid);
+            gui_note_event(event);
+            gui_print_queues(event);
+        }
     }
 
     int instruction_number = current_rr_process->pcb->pc - (current_rr_process->pcb->memory_bounds[0] + 7) + 1;
@@ -35,24 +42,38 @@ Process* execute_round_robin() {
     sync_pcb_from_memory(current_rr_process->pcb->pid, current_rr_process->pcb);
     current_rr_process->pcb->state = RUNNING;
     update_state_in_memory(current_rr_process->pcb->pid, RUNNING);
-    print_memory();
+    {
+        GuiTimesliceInfo slice = {time_quantum, -1};
+        char *instruction = readInstruction(current_rr_process->pcb->pc);
+        gui_render_tick(current_rr_process, instruction, slice);
+    }
     execute_instruction(current_rr_process);
 
     if (current_rr_process->pcb->state == FINISHED) {
         printf("process %d has finished.\n", current_rr_process->pcb->pid);
         update_state_in_memory(current_rr_process->pcb->pid, FINISHED);
+        {
+            char event[128];
+            snprintf(event, sizeof(event), "P%d finished", current_rr_process->pcb->pid);
+            gui_note_event(event);
+            gui_print_queues(event);
+        }
         current_rr_process = NULL;
         rr_ticks_used = 0;
-        print_all_queues();
         return NULL;
     }
 
     if (current_rr_process->pcb->state == BLOCKED) {
         printf("Process %d is blocked\n", current_rr_process->pcb->pid);
         update_state_in_memory(current_rr_process->pcb->pid, BLOCKED);
+        {
+            char event[128];
+            snprintf(event, sizeof(event), "P%d blocked", current_rr_process->pcb->pid);
+            gui_note_event(event);
+            gui_print_queues(event);
+        }
         current_rr_process = NULL;
         rr_ticks_used = 0;
-        print_all_queues();
         return NULL;
     }
 
@@ -62,9 +83,14 @@ Process* execute_round_robin() {
         update_state_in_memory(current_rr_process->pcb->pid, READY);
         set_pending_rr_process(current_rr_process);
         printf("Process %d time slice ended. Moved to end of Ready Queue.\n", current_rr_process->pcb->pid);
+        {
+            char event[128];
+            snprintf(event, sizeof(event), "P%d time slice ended", current_rr_process->pcb->pid);
+            gui_note_event(event);
+            gui_print_queues(event);
+        }
         current_rr_process = NULL;
         rr_ticks_used = 0;
-        print_all_queues();
         return NULL;
     }
 
