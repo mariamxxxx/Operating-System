@@ -140,6 +140,13 @@ int main(void) {
             OSSnapshot snapshot = os_get_snapshot();
             if (snapshot.current_pid == -1) {
                 gui_render_idle();
+            } else {
+                Process *running = os_get_running_process();
+                if (running != NULL && running->pcb != NULL) {
+                    char *instruction = readInstruction(running->pcb->pc);
+                    GuiTimesliceInfo slice = {-1, -1};
+                    gui_render_tick(running, instruction, slice);
+                }
             }
 
             if (remaining_to_load == 0 &&

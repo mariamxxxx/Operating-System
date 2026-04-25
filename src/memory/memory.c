@@ -6,7 +6,9 @@
 #include <string.h>
 #if defined(_WIN32)
 #include <direct.h>
+#include <io.h>
 #else
+#include <dirent.h>
 #include <sys/stat.h>
 #endif
 
@@ -20,6 +22,7 @@ static void build_swap_path(int pid, char *out, size_t out_size){
 }
 
 static void print_swap_file(int pid, const char *action);
+static void clear_swap_files(void);
 
 
 // INDEX
@@ -204,6 +207,7 @@ static int allocate_block(int pid, int num_words){
 // initialize memory
 void init_memory()
 {
+    clear_swap_files();
     for (int i = 0; i < MEMORY_SIZE; i++){
         mem[i].isFree = 1;
         mem[i].ownerPid = -1;
@@ -391,6 +395,7 @@ void swap_in(int pid){
     gui_note_swap(pid, "IN");
     print_swap_file(pid, "IN");
     remove(path);
+    gui_note_swap(-1, NULL);
 
     // update stale addresses
     int old_start = mem[start + 3].payload.memory_boundary[0];
@@ -400,6 +405,44 @@ void swap_in(int pid){
     mem[start + 3].payload.memory_boundary[0] = start;
     mem[start + 3].payload.memory_boundary[1] += offset;
 
+}
+
+static void clear_swap_files(void){
+#if defined(_WIN32)
+    _mkdir(SWAP_DIR);
+    struct _finddata_t entry;
+    char pattern[256];
+    snprintf(pattern, sizeof(pattern), "%s\\*.swap", SWAP_DIR);
+    intptr_t handle = _findfirst(pattern, &entry);
+    if (handle == -1) {
+        return;
+    }
+    do {
+        if ((entry.attrib & _A_SUBDIR) == 0) {
+            char path[256];
+            snprintf(path, sizeof(path), "%s\\%s", SWAP_DIR, entry.name);
+            remove(path);
+        }
+    } while (_findnext(handle, &entry) == 0);
+    _findclose(handle);
+#else
+    mkdir(SWAP_DIR, 0777);
+    DIR *dir = opendir(SWAP_DIR);
+    if (dir == NULL) {
+        return;
+    }
+    struct dirent *entry = NULL;
+    while ((entry = readdir(dir)) != NULL) {
+        const char *name = entry->d_name;
+        size_t len = strlen(name);
+        if (len > 5 && strcmp(name + len - 5, ".swap") == 0) {
+            char path[256];
+            snprintf(path, sizeof(path), "%s/%s", SWAP_DIR, name);
+            remove(path);
+        }
+    }
+    closedir(dir);
+#endif
 }
 
 void print_memory(){

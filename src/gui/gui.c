@@ -494,6 +494,13 @@ static void load_swap_snapshot(int pid) {
 }
 
 void gui_note_swap(int pid, const char *action) {
+    if (pid < 0) {
+        g_last_swap_pid = -1;
+        g_last_swap_action[0] = '\0';
+        g_swap_line_count = 0;
+        return;
+    }
+
     g_last_swap_pid = pid;
     if (action == NULL) {
         g_last_swap_action[0] = '\0';
