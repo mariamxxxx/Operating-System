@@ -483,8 +483,8 @@ void print_memory(){
                        i, mem[i].ownerPid, mem[i].payload.code_line);
             } else {
                 gui_log("[%d] PID=%d pid=%d", i, mem[i].ownerPid, mem[i].ownerPid);
-                gui_log("[%d] PID=%d state=%d", i+1, mem[i].ownerPid, mem[i].payload.state);
-                gui_log("[%d] PID=%d pc=%d", i+2, mem[i].ownerPid, mem[i].payload.program_counter);
+                gui_log("[%d] PID=%d state=%d", i+1, mem[i].ownerPid, mem[i+1].payload.state);
+                gui_log("[%d] PID=%d pc=%d", i+2, mem[i].ownerPid, mem[i+2].payload.program_counter);
                 gui_log("[%d] PID=%d bounds=[%d, %d]", i+3, mem[i].ownerPid,
                        mem[i+3].payload.memory_boundary[0], mem[i+3].payload.memory_boundary[1]);
                 i = i + 3; // skip the next 3 entries which are part of the same PCB
