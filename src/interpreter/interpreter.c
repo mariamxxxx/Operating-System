@@ -199,7 +199,7 @@ void execute_instruction(Process* process) {
     char** parts = splitAndReverse(instruction, &count);
 
     for (int i = 0; i < count; i++) {
-        printf("[DECODE] Instruction parts (processed right-to-left):\n");
+        // printf("[DECODE] Instruction parts (processed right-to-left):\n");
         printf("  -> Part[%d]: %s\n", i, parts[i]);
         char* part = parts[i];
 

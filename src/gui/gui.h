@@ -25,7 +25,9 @@ typedef struct {
 void gui_init(void);
 void gui_shutdown(void);
 int gui_is_initialized(void);
+void gui_reset_state(void);
 char *gui_prompt_input(const char *prompt);
+char *gui_prompt_input_for_pid(const char *prompt, int pid);
 
 GuiControl gui_get_control(void);
 

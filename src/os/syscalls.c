@@ -10,6 +10,8 @@
 #include "../gui/gui.h"
 #include "../memory/memoryy.h"
 
+extern int global_pid;
+
 static void ensure_disk_dir_exists(void) {
 #if defined(_WIN32)
     _mkdir("src/disk");
@@ -88,7 +90,7 @@ void printData(char* data ){ //print values
 
 char* takeInput(){ //take input from user
     if (gui_is_initialized()) {
-        char *gui_value = gui_prompt_input("Enter input for the running process");
+        char *gui_value = gui_prompt_input_for_pid("Enter input", global_pid);
         if (gui_value != NULL) {
             char buffer[256];
             snprintf(buffer, sizeof(buffer), "INPUT: %s", gui_value);

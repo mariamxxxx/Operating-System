@@ -68,15 +68,9 @@ static SchedulerAlgorithm read_algorithm_choice(void) {
 }
 
 int main(void) {
-    int safety_cycles = 1000;
-    int safety_enabled = 0;
     printf("main: starting simulator\n");
 
     gui_init();
-
-    SchedulerAlgorithm algorithm = read_algorithm_choice();
-    os_init(algorithm);
-    gui_note_event("Simulator initialized");
 
     const char *programs[] = {
         "Program_1.txt",
@@ -84,89 +78,98 @@ int main(void) {
         "Program_3.txt"
     };
     const int arrival_times[] = {0, 1, 4};
-    int loaded[] = {0, 0, 0};
-    int remaining_to_load = 3;
 
-    os_pause();
-    int run_steps = 0;
     while (1) {
-        GuiControl control = gui_get_control();
-        if (control.action == GUI_ACTION_QUIT) {
-            break;
-        }
+        int loaded[] = {0, 0, 0};
+        int remaining_to_load = 3;
+        int run_steps = 0;
+        int safety_cycles = 1000;
+        int safety_enabled = 0;
 
-        if (control.action == GUI_ACTION_PAUSE) {
-            os_pause();
-        } else if (control.action == GUI_ACTION_RUN) {
-            run_steps = control.run_steps;
-            os_start();
-        } else if (control.action == GUI_ACTION_STEP) {
-            run_steps = 1;
-            os_start();
-        }
+        gui_reset_state();
+        SchedulerAlgorithm algorithm = read_algorithm_choice();
+        os_init(algorithm);
+        gui_note_event("Simulator initialized");
+        os_pause();
 
-        if (!os_is_running()) {
-            gui_render_idle();
-            continue;
-        }
-
-        int clock = os_get_clock();
-
-        for (int i = 0; i < 3; i++) {
-            if (!loaded[i] && arrival_times[i] == clock) {
-                char path[512];
-                build_program_path(programs[i], path, sizeof(path));
-                printf("main: loading %s at clock=%d\n", path, clock);
-                loadAndInterpret(path, arrival_times[i]);
-                loaded[i] = 1;
-                remaining_to_load--;
+        while (1) {
+            GuiControl control = gui_get_control();
+            if (control.action == GUI_ACTION_QUIT) {
+                gui_shutdown();
+                return 0;
             }
-        }
 
-        flush_pending_rr_process();
-
-        if (remaining_to_load == 0 && os_is_idle()) {
-            gui_note_event("System idle. All arrivals loaded.");
-            gui_render_idle();
-            os_pause();
-        }
-
-        os_tick();
-        OSSnapshot snapshot = os_get_snapshot();
-        if (snapshot.current_pid == -1) {
-            gui_render_idle();
-        }
-
-        if (remaining_to_load == 0 &&
-            snapshot.current_pid == -1 &&
-            snapshot.ready_queue_size == 0 &&
-            snapshot.blocked_queue_size > 0) {
-            printf("Simulation stopped: deadlock (all remaining processes are blocked).\n");
-            gui_note_event("Deadlock detected. Simulation paused.");
-            os_pause();
-        }
-
-        if (run_steps > 0) {
-            run_steps--;
-            if (run_steps == 0) {
+            if (control.action == GUI_ACTION_PAUSE) {
                 os_pause();
+            } else if (control.action == GUI_ACTION_RUN) {
+                run_steps = control.run_steps;
+                os_start();
+            } else if (control.action == GUI_ACTION_STEP) {
+                run_steps = 1;
+                os_start();
             }
-        }
-        if (safety_enabled) {
-            safety_cycles--;
-            if (safety_cycles <= 0) {
-                printf("Simulation stopped by safety limit.\n");
-                gui_note_event("Safety limit reached. Simulation paused.");
+
+            if (!os_is_running()) {
+                gui_render_idle();
+                continue;
+            }
+
+            int clock = os_get_clock();
+
+            for (int i = 0; i < 3; i++) {
+                if (!loaded[i] && arrival_times[i] == clock) {
+                    char path[512];
+                    build_program_path(programs[i], path, sizeof(path));
+                    printf("main: loading %s at clock=%d\n", path, clock);
+                    loadAndInterpret(path, arrival_times[i]);
+                    loaded[i] = 1;
+                    remaining_to_load--;
+                }
+            }
+
+            flush_pending_rr_process();
+
+            if (remaining_to_load == 0 && os_is_idle()) {
+                gui_note_event("System idle. Session complete.");
+                gui_render_idle();
                 os_pause();
-                safety_enabled = 0;
+                break;
+            }
+
+            os_tick();
+            OSSnapshot snapshot = os_get_snapshot();
+            if (snapshot.current_pid == -1) {
+                gui_render_idle();
+            }
+
+            if (remaining_to_load == 0 &&
+                snapshot.current_pid == -1 &&
+                snapshot.ready_queue_size == 0 &&
+                snapshot.blocked_queue_size > 0) {
+                printf("Simulation stopped: deadlock (all remaining processes are blocked).\n");
+                gui_note_event("Deadlock detected. Session paused.");
+                os_pause();
+                break;
+            }
+
+            if (run_steps > 0) {
+                run_steps--;
+                if (run_steps == 0) {
+                    os_pause();
+                }
+            }
+
+            if (safety_enabled) {
+                safety_cycles--;
+                if (safety_cycles <= 0) {
+                    printf("Simulation stopped by safety limit.\n");
+                    gui_note_event("Safety limit reached. Session paused.");
+                    os_pause();
+                    break;
+                }
             }
         }
     }
-
-    os_pause();
-    gui_shutdown();
-
-    return 0;
 }
 
 

@@ -10,8 +10,8 @@
 #include "../os/os_core.h"
 #include "../scheduler/queue.h"
 
-#define GUI_WIDTH 1280
-#define GUI_HEIGHT 720
+#define GUI_MIN_WIDTH 1100
+#define GUI_MIN_HEIGHT 680
 
 static int g_initialized = 0;
 static int g_target_fps = 30;
@@ -26,9 +26,20 @@ static char g_last_swap_action[32] = "";
 static char g_swap_lines[48][256];
 static int g_swap_line_count = 0;
 
-#define GUI_LOG_LINES 10
+#define GUI_LOG_LINES 200
 static char g_log_lines[GUI_LOG_LINES][256];
 static int g_log_index = 0;
+static int g_log_scroll = 0;
+
+static int gui_width(void) {
+    int w = GetScreenWidth();
+    return (w < GUI_MIN_WIDTH) ? GUI_MIN_WIDTH : w;
+}
+
+static int gui_height(void) {
+    int h = GetScreenHeight();
+    return (h < GUI_MIN_HEIGHT) ? GUI_MIN_HEIGHT : h;
+}
 
 static const char *state_name(ProcessState state) {
     switch (state) {
@@ -127,6 +138,9 @@ static void draw_swap_panel(int x, int y, int width, int height) {
     int line_height = 16;
     int font_size = 14;
     int max_lines = (height - 30) / line_height;
+    if (max_lines < 1) {
+        max_lines = 1;
+    }
     int line = 0;
 
     if (g_last_swap_pid < 0 || g_swap_line_count == 0) {
@@ -151,7 +165,7 @@ static void draw_io_panel(int x, int y, int width, int height) {
     int max_lines = (height - 30) / line_height;
     int line = 0;
 
-    int start = g_log_index - max_lines;
+    int start = g_log_index - max_lines - g_log_scroll;
     if (start < 0) {
         start = 0;
     }
@@ -165,6 +179,9 @@ static void draw_io_panel(int x, int y, int width, int height) {
 
 static void render_frame_body(void) {
     ClearBackground((Color){12, 14, 18, 255});
+
+    int width = gui_width();
+    int height = gui_height();
 
     DrawText("OS Simulation Dashboard", 32, 20, 26, (Color){90, 200, 190, 255});
 
@@ -249,10 +266,21 @@ static void render_frame_body(void) {
     DrawText("Controls: Space=Step, R=Run 10, P=Pause, Esc=Quit",
              32, 410, 14, (Color){150, 160, 180, 255});
 
-    draw_io_panel(32, 440, 560, 200);
+    draw_io_panel(32, 440, 560, height - 460);
 
-    draw_memory_panel(640, 120, 290, 520);
-    draw_swap_panel(950, 120, 290, 520);
+    int mem_x = 640;
+    int mem_w = (width - mem_x - 40) / 2;
+    if (mem_w < 260) {
+        mem_w = 260;
+    }
+    int swap_x = mem_x + mem_w + 20;
+    int swap_w = width - swap_x - 40;
+    if (swap_w < 260) {
+        swap_w = 260;
+    }
+
+    draw_memory_panel(mem_x, 120, mem_w, height - 200);
+    draw_swap_panel(swap_x, 120, swap_w, height - 200);
 
 }
 
@@ -267,8 +295,8 @@ static void render_input_overlay(const char *prompt, const char *buffer) {
 
     int overlay_w = 520;
     int overlay_h = 180;
-    int overlay_x = (GUI_WIDTH - overlay_w) / 2;
-    int overlay_y = (GUI_HEIGHT - overlay_h) / 2;
+    int overlay_x = (gui_width() - overlay_w) / 2;
+    int overlay_y = (gui_height() - overlay_h) / 2;
 
     DrawRectangle(overlay_x - 6, overlay_y - 6, overlay_w + 12, overlay_h + 12, (Color){8, 10, 14, 220});
     DrawRectangle(overlay_x, overlay_y, overlay_w, overlay_h, (Color){30, 36, 46, 255});
@@ -289,8 +317,8 @@ void gui_init(void) {
         return;
     }
 
-    SetConfigFlags(FLAG_MSAA_4X_HINT);
-    InitWindow(GUI_WIDTH, GUI_HEIGHT, "OS Simulation GUI");
+    SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_WINDOW_RESIZABLE);
+    InitWindow(GUI_MIN_WIDTH, GUI_MIN_HEIGHT, "OS Simulation GUI");
     SetTargetFPS(g_target_fps);
     g_initialized = 1;
 }
@@ -307,6 +335,26 @@ int gui_is_initialized(void) {
     return g_initialized;
 }
 
+void gui_reset_state(void) {
+    g_last_event[0] = '\0';
+    strncpy(g_last_event, "(none)", sizeof(g_last_event) - 1);
+    g_last_instruction[0] = '\0';
+    strncpy(g_last_instruction, "(none)", sizeof(g_last_instruction) - 1);
+    g_last_pid = -1;
+    g_last_pc = -1;
+    g_last_state = READY;
+    g_last_slice.time_slice = -1;
+    g_last_slice.queue_level = -1;
+    g_last_swap_pid = -1;
+    g_last_swap_action[0] = '\0';
+    g_swap_line_count = 0;
+    for (int i = 0; i < GUI_LOG_LINES; i++) {
+        g_log_lines[i][0] = '\0';
+    }
+    g_log_index = 0;
+    g_log_scroll = 0;
+}
+
 GuiControl gui_get_control(void) {
     GuiControl control = {GUI_ACTION_NONE, 0};
 
@@ -317,6 +365,25 @@ GuiControl gui_get_control(void) {
     if (WindowShouldClose()) {
         control.action = GUI_ACTION_QUIT;
         return control;
+    }
+
+    float wheel = GetMouseWheelMove();
+    if (wheel != 0.0f) {
+        g_log_scroll -= (int)wheel;
+        if (g_log_scroll < 0) {
+            g_log_scroll = 0;
+        }
+        int visible_lines = (gui_height() - 460 - 30) / 16;
+        if (visible_lines < 1) {
+            visible_lines = 1;
+        }
+        int max_scroll = g_log_index - visible_lines;
+        if (max_scroll < 0) {
+            max_scroll = 0;
+        }
+        if (g_log_scroll > max_scroll) {
+            g_log_scroll = max_scroll;
+        }
     }
 
     Vector2 mouse = GetMousePosition();
@@ -446,6 +513,7 @@ void gui_log_output(const char *line) {
     strncpy(g_log_lines[slot], line, sizeof(g_log_lines[slot]) - 1);
     g_log_lines[slot][sizeof(g_log_lines[slot]) - 1] = '\0';
     g_log_index++;
+    g_log_scroll = 0;
 }
 
 void gui_print_queues(const char *event) {
@@ -524,4 +592,13 @@ char *gui_prompt_input(const char *prompt) {
     }
 
     return strdup("");
+}
+
+char *gui_prompt_input_for_pid(const char *prompt, int pid) {
+    char formatted[256];
+    if (pid >= 0) {
+        snprintf(formatted, sizeof(formatted), "P%d: %s", pid, prompt != NULL ? prompt : "Enter input:");
+        return gui_prompt_input(formatted);
+    }
+    return gui_prompt_input(prompt);
 }

@@ -278,7 +278,7 @@ static char** SplitInstruction(char* line, int *count) {
 // }
 
 static char* parseLineToOpcode(char* line) {
-    printf("\n[TRANSLATE] Parsing line: \"%s\"\n", line);
+    // printf("\n[TRANSLATE] Parsing line: \"%s\"\n", line);
     int token_count = 0;
     char *line_copy = strdup(line);
     if (line_copy == NULL) {
@@ -321,7 +321,7 @@ static char* parseLineToOpcode(char* line) {
         strcat(result, mapped);
     }
 
-    printf("[TRANSLATE] Opcode generated: \"%s\"\n", result);
+    // printf("[TRANSLATE] Opcode generated: \"%s\"\n", result);
 
     free(instruction);
     free(line_copy);
@@ -329,8 +329,8 @@ static char* parseLineToOpcode(char* line) {
 }
 
 void parseInstructionsIntoMemory(char* rawData , Process* process) {
-    printf("parseInstructionsIntoMemory: loading program for PID %d\n", process->pcb->pid);
-    printf("parseInstructionsIntoMemory: rawData length=%zu\n", strlen(rawData));
+    // printf("parseInstructionsIntoMemory: loading program for PID %d\n", process->pcb->pid);
+    // printf("parseInstructionsIntoMemory: rawData length=%zu\n", strlen(rawData));
 
     char* saveptr;
     char* line = strtok_r(rawData, "\n", &saveptr); // Get first line
@@ -338,44 +338,44 @@ void parseInstructionsIntoMemory(char* rawData , Process* process) {
     int i = 0; 
     
     while (line != NULL) {
-        printf("parseInstructionsIntoMemory: processing line %d: '%s'\n", i, line);
+        // printf("parseInstructionsIntoMemory: processing line %d: '%s'\n", i, line);
 
         char* instruction = parseLineToOpcode(line); 
-        printf("parseInstructionsIntoMemory: parsed instruction: '%s'\n", instruction ? instruction : "NULL");
+        // printf("parseInstructionsIntoMemory: parsed instruction: '%s'\n", instruction ? instruction : "NULL");
 
         if (instruction != NULL && i < MAX_CODE_LINES) {
             strcpy(process->code_lines[i], instruction);
-            printf("parseInstructionsIntoMemory: stored at index %d\n", i);
+            // printf("parseInstructionsIntoMemory: stored at index %d\n", i);
 
             // free(instruction);
             i++;
             process->code_line_count++;
         } else {
-            printf("parseInstructionsIntoMemory: skipped line %d\n", i);
+            // printf("parseInstructionsIntoMemory: skipped line %d\n", i);
         }
         // printf("parseInstructionsIntoMemory: %d, %s", i, instruction);
 
         line = strtok_r(NULL, "\n", &saveptr); // Get next line
-        printf("parseInstructionsIntoMemory: next line: '%s'\n", line ? line : "NULL");
+        // printf("parseInstructionsIntoMemory: next line: '%s'\n", line ? line : "NULL");
     }
 
-    printf("parseInstructionsIntoMemory: total code_line_count=%d\n", process->code_line_count);
+    // printf("parseInstructionsIntoMemory: total code_line_count=%d\n", process->code_line_count);
     allocate_memory(process->pcb->pid, process);
-    printf("parseInstructionsIntoMemory: after allocate_memory, PC=%d\n", process->pcb->pc);
+    // printf("parseInstructionsIntoMemory: after allocate_memory, PC=%d\n", process->pcb->pc);
     add_process_to_scheduler(process);
 
     free(rawData); 
 }
 
 extern void loadAndInterpret(char* filename, int arrival_time) { 
-    printf("loadAndInterpret: filename='%s', arrival_time=%d\n", filename, arrival_time);
+    // printf("loadAndInterpret: filename='%s', arrival_time=%d\n", filename, arrival_time);
     if (filename == NULL) {
         printf("[ERROR] Filename is NULL. Cannot proceed.\n");
         return;
     }
     
     char* fileContent = readFile(filename);
-    printf("loadAndInterpret: fileContent length=%zu\n", fileContent ? strlen(fileContent) : 0);
+    // printf("loadAndInterpret: fileContent length=%zu\n", fileContent ? strlen(fileContent) : 0);
        
     if (fileContent == NULL) {
         printf("[ERROR] Could not load %s - readFile returned NULL\n", filename);
@@ -384,7 +384,7 @@ extern void loadAndInterpret(char* filename, int arrival_time) {
     }
 
     Process *process = initProcess(arrival_time);
-    printf("loadAndInterpret: created process PID=%d\n", process ? process->pcb->pid : -1);
+    // printf("loadAndInterpret: created process PID=%d\n", process ? process->pcb->pid : -1);
     if (process == NULL) {
         free(fileContent);
         return;
@@ -393,10 +393,10 @@ extern void loadAndInterpret(char* filename, int arrival_time) {
     char *count_copy = strdup(fileContent);
     if (count_copy != NULL) {
         int lines = CountLines(count_copy);
-        printf("loadAndInterpret: CountLines returned %d\n", lines);
+        // printf("loadAndInterpret: CountLines returned %d\n", lines);
         free(count_copy);
     }
 
     parseInstructionsIntoMemory(fileContent, process);
-    printf("loadAndInterpret: done\n");
+    // printf("loadAndInterpret: done\n");
 }
