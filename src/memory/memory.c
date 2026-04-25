@@ -411,7 +411,12 @@ void print_memory(){
                 printf("[%d] PID=%d CODE %s\n",
                        i, mem[i].ownerPid, mem[i].payload.code_line);
             } else {
-                printf("[%d] PID=%d PCB\n", i, mem[i].ownerPid);
+                printf("[%d] PID=%d pid=%d\n", i, mem[i].ownerPid, mem[i].ownerPid);
+                printf("[%d] PID=%d state=%d\n", i+1, mem[i].ownerPid, mem[i].payload.state);
+                printf("[%d] PID=%d pc=%d\n", i+2, mem[i].ownerPid, mem[i].payload.program_counter);
+                printf("[%d] PID=%d bounds=[%d, %d]\n", i+3, mem[i].ownerPid,
+                       mem[i].payload.memory_boundary[0], mem[i].payload.memory_boundary[1]);
+                i = i + 3; // skip the next 3 entries which are part of the same PCB
             }
         }
     }
