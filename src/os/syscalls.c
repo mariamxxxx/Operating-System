@@ -64,7 +64,7 @@ void printData(char* data ){ //print values
 char* takeInput(){ 
     char* input = (char*) malloc(100);
     gui_log("Enter input: ");
-    
+    scanf("Enter input %s", input);
     // Copy the guaranteed ready text
     strncpy(input, input_text, 99);
     input[99] = '\0';

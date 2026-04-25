@@ -3,6 +3,15 @@
 #include <string.h>
 #include <stdarg.h>
 
+#if !defined(OS_FORCE_TERMINAL) && defined(__has_include)
+#  if __has_include(<SDL2/SDL.h>) && __has_include(<SDL2/SDL_ttf.h>)
+#    include <SDL2/SDL.h>
+#    include <SDL2/SDL_ttf.h>
+#    define HAVE_SDL 1
+#  endif
+#endif
+
+#ifdef HAVE_SDL
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
@@ -16,7 +25,8 @@
 #define MAX_INPUT_LEN 64
 static char log_buffer[MAX_LOG_LINES][128];
 static int log_count = 0;
-static char input_text[MAX_INPUT_LEN] = "";
+char input_text[MAX_INPUT_LEN] = "";
+bool input_submitted = true;
 
 // Custom logging function for the GUI
 void gui_log(const char *format, ...) {
@@ -207,3 +217,106 @@ int old_main(int argc, char **argv) {
     SDL_Quit();
     return 0;
 }
+
+int main(int argc, char **argv) {
+    return old_main(argc, argv);
+}
+
+#else
+
+#include "interpreter/parser.h"
+#include "os/os_core.h"
+#include "scheduler/scheduler.h"
+
+void gui_log(const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    vprintf(format, args);
+    printf("\n");
+    va_end(args);
+}
+
+char input_text[1] = {0};
+bool input_submitted = true;
+
+static SchedulerAlgorithm read_algorithm_choice(void) {
+    char choice[32];
+
+    printf("Choose scheduler (1=RR, 2=HRRN, 3=MLFQ) [default=2]: ");
+    if (fgets(choice, sizeof(choice), stdin) == NULL) {
+        return HRRN;
+    }
+
+    if (choice[0] == '1') {
+        return RR;
+    }
+
+    if (choice[0] == '3') {
+        return MLFQ;
+    }
+
+    return HRRN;
+}
+
+int main(void) {
+    int safety_cycles = 10000;
+    printf("main: starting simulator\n");
+
+    SchedulerAlgorithm algorithm = read_algorithm_choice();
+    os_init(algorithm);
+
+    const char *programs[] = {
+        "src/programs/Program_1.txt",
+        "src/programs/Program_2.txt",
+        "src/programs/Program_3.txt"
+    };
+    const int arrival_times[] = {0, 1, 4};
+    int loaded[] = {0, 0, 0};
+    int remaining_to_load = 3;
+
+    os_start();
+    while (safety_cycles-- > 0) {
+        int clock = os_get_clock();
+
+        for (int i = 0; i < 3; i++) {
+            if (!loaded[i] && arrival_times[i] == clock) {
+                printf("main: loading %s at clock=%d\n", programs[i], clock);
+                loadAndInterpret((char *)programs[i], arrival_times[i]);
+                loaded[i] = 1;
+                remaining_to_load--;
+            }
+        }
+
+        flush_pending_rr_process();
+
+        if (remaining_to_load == 0 && os_is_idle()) {
+            break;
+        }
+
+        os_tick();
+        OSSnapshot snapshot = os_get_snapshot();
+        printf("Tick=%d Running=%d Ready=%d Blocked=%d\n",
+               snapshot.clock_tick,
+               snapshot.current_pid,
+               snapshot.ready_queue_size,
+               snapshot.blocked_queue_size);
+
+        if (remaining_to_load == 0 &&
+            snapshot.current_pid == -1 &&
+            snapshot.ready_queue_size == 0 &&
+            snapshot.blocked_queue_size > 0) {
+            printf("Simulation stopped: deadlock (all remaining processes are blocked).\n");
+            break;
+        }
+    }
+
+    os_pause();
+
+    if (safety_cycles <= 0) {
+        printf("Simulation stopped by safety limit.\n");
+    }
+
+    return 0;
+}
+
+#endif
