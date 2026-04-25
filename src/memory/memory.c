@@ -469,21 +469,25 @@ static void print_resident_block(int pid, const char *action){
 }
 
 void print_memory(){
-    //gui_clear(); // Clear previous dump
     gui_log("--- MEMORY DUMP ---");
     for (int i = 0; i < MEMORY_SIZE; i++){
         if (mem[i].isFree)
-            gui_log("[MEM] [%d] FREE", i);
+            gui_log("[%d] FREE", i);
         else
         {
             if (mem[i].type == VARIABLE){
-                gui_log("[MEM] [%d] PID=%d VAR %s=%s",
+                gui_log("[%d] PID=%d VAR %s=%s",
                        i, mem[i].ownerPid, mem[i].payload.var.name, mem[i].payload.var.value);
             } else if (mem[i].type == CODE_LINE){
-                gui_log("[MEM] [%d] PID=%d CODE %s",
+                gui_log("[%d] PID=%d CODE %s",
                        i, mem[i].ownerPid, mem[i].payload.code_line);
             } else {
-                gui_log("[MEM] [%d] PID=%d PCB", i, mem[i].ownerPid);
+                gui_log("[%d] PID=%d pid=%d", i, mem[i].ownerPid, mem[i].ownerPid);
+                gui_log("[%d] PID=%d state=%d", i+1, mem[i].ownerPid, mem[i].payload.state);
+                gui_log("[%d] PID=%d pc=%d", i+2, mem[i].ownerPid, mem[i].payload.program_counter);
+                gui_log("[%d] PID=%d bounds=[%d, %d]", i+3, mem[i].ownerPid,
+                       mem[i].payload.memory_boundary[0], mem[i].payload.memory_boundary[1]);
+                i = i + 3; // skip the next 3 entries which are part of the same PCB
             }
         }
     }

@@ -55,9 +55,11 @@ static bool program_1_loaded = false;
 static bool program_2_loaded = false;
 static bool program_3_loaded = false;
 
+// Function declarations
 void gui_log(const char *format, ...);
 void gui_memory_log(const char *format, ...);
 void gui_memory_clear(void);
+extern void print_memory(void); // Ensure the OS memory print function is linked
 
 void gui_memory_clear(void) {
     mem_count = 0;
@@ -151,49 +153,41 @@ static void execute_single_tick(bool is_auto_tick) {
     play_tick_sound();
     if (is_auto_tick) gui_log("Tick %d: Auto step executed.", os_get_clock());
     else gui_log("Tick %d: Step executed.", os_get_clock());
+    
+    // Auto-update memory GUI every single tick
+    print_memory(); 
 }
-
-// void gui_log(const char *format, ...) {
-//     if (log_count >= MAX_LOG_LINES) return;
-//     va_list args;
-//     va_start(args, format);
-//     vsnprintf(log_buffer[log_count], 128, format, args);
-//     va_end(args);
-//     capture_input_var_hint_from_log_line(log_buffer[log_count]);
-//     if (strstr(log_buffer[log_count], "goint to take input") != NULL) is_waiting_for_input = true;
-//     log_count++;
-//     scroll_offset = 0; 
-// }
 
 void gui_log(const char *format, ...) {
     // 1. Format the incoming text into a temporary buffer first
-    char temp_buffer[128];
+    char temp_buffer[256]; 
     va_list args;
     va_start(args, format);
-    vsnprintf(temp_buffer, 128, format, args);
+    vsnprintf(temp_buffer, sizeof(temp_buffer), format, args);
     va_end(args);
 
-    // --- NEW ROUTING LOGIC ---
-    // Check if it's the start of a memory dump
-    if (strstr(temp_buffer, "[MEM]") != NULL) {
-        strncpy(mem_buffer[mem_count], temp_buffer, 128);
-        mem_count++;
-        return; // Don't print this header, the box already says "Memory"
+    // --- NEW BULLETPROOF ROUTING LOGIC ---
+    // Check if it's the exact start of a memory dump
+    if (strstr(temp_buffer, "--- MEMORY DUMP ---") != NULL) {
+        gui_memory_clear(); // Resets mem_count to 0 so it never glitches/overflows!
+        return; 
     }
 
-    // Check if it's a memory line (e.g., "[0] FREE" or "[4] PID=2")
-    // if (temp_buffer[0] == '[' && strchr(temp_buffer, ']')) {
-    //     if (mem_count < MAX_MEM_LINES) {
-    //         strncpy(mem_buffer[mem_count], temp_buffer, 128);
-    //         mem_count++;
-    //     }
-    //     return; // STOP here so it doesn't go to the left terminal!
-    // }
-    // -------------------------
+    // Safely check ONLY for true memory lines, ignoring "[PARSE]" or "[LOAD]"
+    if (strstr(temp_buffer, "] FREE") != NULL || strstr(temp_buffer, "] PID=") != NULL) {
+        if (mem_count < MAX_MEM_LINES) {
+            strncpy(mem_buffer[mem_count], temp_buffer, 128);
+            mem_buffer[mem_count][127] = '\0'; // Safe termination
+            mem_count++;
+        }
+        return; // STOP here so it doesn't go to the left terminal!
+    }
+    // -------------------------------------
 
     // 2. Normal logs go to the main terminal (Left Box)
     if (log_count >= MAX_LOG_LINES) return;
     strncpy(log_buffer[log_count], temp_buffer, 128);
+    log_buffer[log_count][127] = '\0'; // Safe termination
     
     capture_input_var_hint_from_log_line(log_buffer[log_count]);
     if (strstr(log_buffer[log_count], "goint to take input") != NULL) {
@@ -281,7 +275,7 @@ int main(int argc, char **argv) {
     SDL_Rect input_bar_base = {50, 770, 1100, 50}, btn_enter_base = {1060, 770, 90, 50};
     SDL_Rect ready_rect_base = {50, 140, 530, 140}, blocked_rect_base = {620, 140, 530, 140};
     
-    // Adjusted layouts to make room for the new memory box
+    // Layout boundaries
     SDL_Rect kernel_rect_base = {50, 290, 540, 120};
     SDL_Rect term_rect_base = {50, 430, 540, 320};
     SDL_Rect mem_rect_base = {610, 290, 540, 460};
@@ -308,8 +302,8 @@ int main(int argc, char **argv) {
             if (ev.type == SDL_MOUSEWHEEL) {
                 int mx, my;
                 SDL_GetMouseState(&mx, &my);
-                // Check if mouse is hovering over memory area or term area for isolated scrolling
-                if (mx >= mem_rect.x && my >= mem_rect.y && my <= mem_rect.y + mem_rect.h) {
+                // Isolated scrolling check based on boundaries
+                if (mx >= mem_rect.x && my >= mem_rect.y && mx <= mem_rect.x + mem_rect.w && my <= mem_rect.y + mem_rect.h) {
                     if (ev.wheel.y > 0) { if (mem_scroll_offset > 0) mem_scroll_offset--; }
                     else if (ev.wheel.y < 0) { if (mem_scroll_offset + VISIBLE_MEM_LINES < mem_count) mem_scroll_offset++; }
                 } else {
@@ -327,15 +321,15 @@ int main(int argc, char **argv) {
                 }
                 if (mx >= btn_rr.x && mx <= btn_rr.x + btn_rr.w && my >= btn_rr.y && my <= btn_rr.y + btn_rr.h) { 
                     selected_algo = RR; os_init(RR); initialized = true; gui_log(">> Init: Round Robin");
-                    program_1_loaded = program_2_loaded = program_3_loaded = false; auto_run = false; load_arrivals_for_current_tick();
+                    program_1_loaded = program_2_loaded = program_3_loaded = false; auto_run = false; load_arrivals_for_current_tick(); print_memory();
                 }
                 if (mx >= btn_hr.x && mx <= btn_hr.x + btn_hr.w && my >= btn_hr.y && my <= btn_hr.y + btn_hr.h) { 
                     selected_algo = HRRN; os_init(HRRN); initialized = true; gui_log(">> Init: HRRN");
-                    program_1_loaded = program_2_loaded = program_3_loaded = false; auto_run = false; load_arrivals_for_current_tick();
+                    program_1_loaded = program_2_loaded = program_3_loaded = false; auto_run = false; load_arrivals_for_current_tick(); print_memory();
                 }
                 if (mx >= btn_ml.x && mx <= btn_ml.x + btn_ml.w && my >= btn_ml.y && my <= btn_ml.y + btn_ml.h) { 
                     selected_algo = MLFQ; os_init(MLFQ); initialized = true; gui_log(">> Init: MLFQ");
-                    program_1_loaded = program_2_loaded = program_3_loaded = false; auto_run = false; load_arrivals_for_current_tick();
+                    program_1_loaded = program_2_loaded = program_3_loaded = false; auto_run = false; load_arrivals_for_current_tick(); print_memory();
                 }
                 if (mx >= btn_run.x && mx <= btn_run.x + btn_run.w && my >= btn_run.y && my <= btn_run.y + btn_run.h && initialized) {
                     auto_run = true; resume_auto_run_after_input = false; last_auto_tick_ms = SDL_GetTicks(); gui_log("Tick auto-run enabled.");
@@ -399,7 +393,7 @@ int main(int argc, char **argv) {
         for (int i = 0; i < VISIBLE_LINES && (s_idx + i) < log_count; i++) draw_text(ren, f_sml, sx_i(70, sx), sy_i(445 + (i * 28), sy), C_TEXT, log_buffer[s_idx + i]);
         if (scroll_offset > 0) draw_text(ren, f_sml, term_rect.x + term_rect.w - 120, term_rect.y + 10, C_YELLOW, "[SCROLLED UP]");
 
-        // ================= NEW MEMORY BOX =================
+        // ================= MEMORY BOX RENDERING =================
         fill_rect(ren, mem_rect, (SDL_Color){17, 17, 27, 255}); 
         stroke_rect(ren, mem_rect, C_ACCENT);
         draw_text(ren, f_bold, sx_i(630, sx), sy_i(310, sy), C_ACCENT, "Memory");
@@ -407,7 +401,8 @@ int main(int argc, char **argv) {
         for (int i = 0; i < VISIBLE_MEM_LINES && (mem_scroll_offset + i) < mem_count; i++) {
             draw_text(ren, f_sml, sx_i(630, sx), sy_i(350 + (i * 24), sy), C_TEXT, mem_buffer[mem_scroll_offset + i]);
         }
-        // ==================================================
+        if (mem_scroll_offset > 0) draw_text(ren, f_sml, mem_rect.x + mem_rect.w - 120, mem_rect.y + 10, C_YELLOW, "[SCROLLED UP]");
+        // ========================================================
 
         bool blink = ((SDL_GetTicks() / 450) % 2) == 0;
         if (is_waiting_for_input) {
