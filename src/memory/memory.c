@@ -3,6 +3,11 @@
 #include "../process/processs.h"
 #include <stdio.h>
 #include <string.h>
+#if defined(_WIN32)
+#include <direct.h>
+#else
+#include <sys/stat.h>
+#endif
 
 #define SWAP_DIR "src/disk"
 MemoryWord mem[MEMORY_SIZE];
@@ -14,6 +19,7 @@ static void build_swap_path(int pid, char *out, size_t out_size){
 }
 
 static void print_swap_file(int pid, const char *action);
+
 
 // INDEX
 static MapEntry memory_map[MEMORY_SIZE / 2];
@@ -344,7 +350,7 @@ void swap_out(int pid, int word_count){
     }
 
     fclose(file);
-    print_swap_file(pid, "OUT");
+    // print_swap_file(pid, "OUT");
     free_process_memory(pid);
 }
 
@@ -378,7 +384,7 @@ void swap_in(int pid){
     }
 
     fclose(file);
-    print_swap_file(pid, "IN");
+    // print_swap_file(pid, "IN");
     remove(path);
 
     // update stale addresses
