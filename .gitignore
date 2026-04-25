@@ -17,9 +17,10 @@
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
-Makefile
-build/
 out/
+
+# Build output directory
+build/
 
 # MSVC
 *.pdb
