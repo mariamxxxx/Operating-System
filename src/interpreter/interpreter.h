@@ -15,4 +15,9 @@ char* callReadFile(char* filename);
 char* callTakeInput();
 void execute_instruction(Process* process);
 
+// True when the last execute_instruction bailed for GUI input (not yet submitted).
+// Used to skip sim clock and RR/MLFQ quantum for that "poll".
+void instruction_clear_stall(void);
+int instruction_stalled_on_input(void);
+
 #endif

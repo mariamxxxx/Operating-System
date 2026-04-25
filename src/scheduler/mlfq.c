@@ -1,3 +1,5 @@
+
+
 #include "scheduler.h"
 #include "../interpreter/interpreter.h"
 #include "../memory/memoryy.h"
@@ -48,8 +50,12 @@ Process* execute_mlfq() {
     sync_pcb_from_memory(current_mlfq_process->pcb->pid, current_mlfq_process->pcb);
     current_mlfq_process->pcb->state = RUNNING;
     update_state_in_memory(current_mlfq_process->pcb->pid, RUNNING);
-    print_memory();
     execute_instruction(current_mlfq_process);
+
+    if (instruction_stalled_on_input()) {
+        print_all_queues();
+        return current_mlfq_process;
+    }
 
     if (current_mlfq_process->pcb->state == FINISHED) {
         printf("Process %d has finished\n", current_mlfq_process->pcb->pid);
