@@ -469,24 +469,45 @@ static void print_resident_block(int pid, const char *action){
 }
 
 void print_memory(){
+    //gui_clear(); // Clear previous dump
     gui_log("--- MEMORY DUMP ---");
     for (int i = 0; i < MEMORY_SIZE; i++){
         if (mem[i].isFree)
-            gui_log("[%d] FREE", i);
+            gui_log("[MEM] [%d] FREE", i);
         else
         {
             if (mem[i].type == VARIABLE){
-                gui_log("[%d] PID=%d VAR %s=%s",
+                gui_log("[MEM] [%d] PID=%d VAR %s=%s",
                        i, mem[i].ownerPid, mem[i].payload.var.name, mem[i].payload.var.value);
             } else if (mem[i].type == CODE_LINE){
-                gui_log("[%d] PID=%d CODE %s",
+                gui_log("[MEM] [%d] PID=%d CODE %s",
                        i, mem[i].ownerPid, mem[i].payload.code_line);
             } else {
-                gui_log("[%d] PID=%d PCB", i, mem[i].ownerPid);
+                gui_log("[MEM] [%d] PID=%d PCB", i, mem[i].ownerPid);
             }
         }
     }
 }
+
+// void print_memory(){
+//     gui_log("--- MEMORY DUMP ---");
+//     for (int i = 0; i < MEMORY_SIZE; i++){
+//         if (mem[i].isFree)
+//             gui_log("[%d] FREE", i);
+//         else
+//         {
+//             if (mem[i].type == VARIABLE){
+//                 gui_log("[%d] PID=%d VAR %s=%s",
+//                        i, mem[i].ownerPid, mem[i].payload.var.name, mem[i].payload.var.value);
+//             } else if (mem[i].type == CODE_LINE){
+//                 gui_log("[%d] PID=%d CODE %s",
+//                        i, mem[i].ownerPid, mem[i].payload.code_line);
+//             } else {
+//                 gui_log("[%d] PID=%d PCB", i, mem[i].ownerPid);
+//             }
+//         }
+//     }
+// }
 
 static void print_swap_file(int pid, const char *action){
     char path[MAX_STRING];

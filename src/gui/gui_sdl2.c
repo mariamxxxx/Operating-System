@@ -13,7 +13,7 @@
 #include "../os/syscalls.h"
 #include "../scheduler/scheduler.h"
 
-#define MAX_LOG_LINES 1000
+#define MAX_LOG_LINES 10000
 #define VISIBLE_LINES 10
 #define MAX_INPUT_LEN 64
 #define GUI_BASE_WIDTH 1200
@@ -21,6 +21,10 @@
 #define GUI_DEFAULT_WIDTH 960
 #define GUI_DEFAULT_HEIGHT 680
 #define AUTO_TICK_MS 1000
+
+// Memory Box Definitions
+#define MAX_MEM_LINES 1000
+#define VISIBLE_MEM_LINES 16
 
 // Modern Dark Theme Colors
 SDL_Color C_BG      = {30, 30, 46, 255};   
@@ -37,6 +41,11 @@ static char log_buffer[MAX_LOG_LINES][128];
 static int log_count = 0;
 static int scroll_offset = 0; 
 
+// Memory Buffers
+static char mem_buffer[MAX_MEM_LINES][128];
+static int mem_count = 0;
+static int mem_scroll_offset = 0;
+
 char input_text[MAX_INPUT_LEN] = "";
 bool is_waiting_for_input = false;
 bool input_focused = false; 
@@ -47,6 +56,22 @@ static bool program_2_loaded = false;
 static bool program_3_loaded = false;
 
 void gui_log(const char *format, ...);
+void gui_memory_log(const char *format, ...);
+void gui_memory_clear(void);
+
+void gui_memory_clear(void) {
+    mem_count = 0;
+    mem_scroll_offset = 0;
+}
+
+void gui_memory_log(const char *format, ...) {
+    if (mem_count >= MAX_MEM_LINES) return;
+    va_list args;
+    va_start(args, format);
+    vsnprintf(mem_buffer[mem_count], 128, format, args);
+    va_end(args);
+    mem_count++;
+}
 
 static bool submit_input_if_ready(void) {
     if (!is_waiting_for_input || strlen(input_text) == 0) return false;
@@ -128,14 +153,53 @@ static void execute_single_tick(bool is_auto_tick) {
     else gui_log("Tick %d: Step executed.", os_get_clock());
 }
 
+// void gui_log(const char *format, ...) {
+//     if (log_count >= MAX_LOG_LINES) return;
+//     va_list args;
+//     va_start(args, format);
+//     vsnprintf(log_buffer[log_count], 128, format, args);
+//     va_end(args);
+//     capture_input_var_hint_from_log_line(log_buffer[log_count]);
+//     if (strstr(log_buffer[log_count], "goint to take input") != NULL) is_waiting_for_input = true;
+//     log_count++;
+//     scroll_offset = 0; 
+// }
+
 void gui_log(const char *format, ...) {
-    if (log_count >= MAX_LOG_LINES) return;
+    // 1. Format the incoming text into a temporary buffer first
+    char temp_buffer[128];
     va_list args;
     va_start(args, format);
-    vsnprintf(log_buffer[log_count], 128, format, args);
+    vsnprintf(temp_buffer, 128, format, args);
     va_end(args);
+
+    // --- NEW ROUTING LOGIC ---
+    // Check if it's the start of a memory dump
+    if (strstr(temp_buffer, "[MEM]") != NULL) {
+        strncpy(mem_buffer[mem_count], temp_buffer, 128);
+        mem_count++;
+        return; // Don't print this header, the box already says "Memory"
+    }
+
+    // Check if it's a memory line (e.g., "[0] FREE" or "[4] PID=2")
+    // if (temp_buffer[0] == '[' && strchr(temp_buffer, ']')) {
+    //     if (mem_count < MAX_MEM_LINES) {
+    //         strncpy(mem_buffer[mem_count], temp_buffer, 128);
+    //         mem_count++;
+    //     }
+    //     return; // STOP here so it doesn't go to the left terminal!
+    // }
+    // -------------------------
+
+    // 2. Normal logs go to the main terminal (Left Box)
+    if (log_count >= MAX_LOG_LINES) return;
+    strncpy(log_buffer[log_count], temp_buffer, 128);
+    
     capture_input_var_hint_from_log_line(log_buffer[log_count]);
-    if (strstr(log_buffer[log_count], "goint to take input") != NULL) is_waiting_for_input = true;
+    if (strstr(log_buffer[log_count], "goint to take input") != NULL) {
+        is_waiting_for_input = true;
+    }
+    
     log_count++;
     scroll_offset = 0; 
 }
@@ -214,8 +278,13 @@ int main(int argc, char **argv) {
 
     SDL_Rect btn_rr_base = {50, 80, 100, 40}, btn_hr_base = {160, 80, 100, 40}, btn_ml_base = {270, 80, 100, 40};
     SDL_Rect btn_run_base = {940, 80, 100, 40}, btn_pause_base = {1050, 80, 100, 40}, btn_step_base = {830, 80, 100, 40};
-    SDL_Rect input_bar_base = {50, 770, 1100, 50}, btn_enter_base = {1060, 770, 90, 50}, term_rect_base = {50, 430, 1100, 320};
-    SDL_Rect ready_rect_base = {50, 140, 530, 140}, blocked_rect_base = {620, 140, 530, 140}, kernel_rect_base = {50, 290, 1100, 120};
+    SDL_Rect input_bar_base = {50, 770, 1100, 50}, btn_enter_base = {1060, 770, 90, 50};
+    SDL_Rect ready_rect_base = {50, 140, 530, 140}, blocked_rect_base = {620, 140, 530, 140};
+    
+    // Adjusted layouts to make room for the new memory box
+    SDL_Rect kernel_rect_base = {50, 290, 540, 120};
+    SDL_Rect term_rect_base = {50, 430, 540, 320};
+    SDL_Rect mem_rect_base = {610, 290, 540, 460};
 
     gui_log(">> System Online. Click an algorithm to begin.");
     SDL_StopTextInput(); 
@@ -227,15 +296,26 @@ int main(int argc, char **argv) {
 
         SDL_Rect btn_rr = scale_rect(btn_rr_base, sx, sy), btn_hr = scale_rect(btn_hr_base, sx, sy), btn_ml = scale_rect(btn_ml_base, sx, sy);
         SDL_Rect btn_run = scale_rect(btn_run_base, sx, sy), btn_pause = scale_rect(btn_pause_base, sx, sy), btn_step = scale_rect(btn_step_base, sx, sy);
-        SDL_Rect input_bar = scale_rect(input_bar_base, sx, sy), btn_enter = scale_rect(btn_enter_base, sx, sy), term_rect = scale_rect(term_rect_base, sx, sy);
+        SDL_Rect input_bar = scale_rect(input_bar_base, sx, sy), btn_enter = scale_rect(btn_enter_base, sx, sy);
+        
+        SDL_Rect term_rect = scale_rect(term_rect_base, sx, sy);
         SDL_Rect ready_rect = scale_rect(ready_rect_base, sx, sy), blocked_rect = scale_rect(blocked_rect_base, sx, sy), kernel_rect = scale_rect(kernel_rect_base, sx, sy);
+        SDL_Rect mem_rect = scale_rect(mem_rect_base, sx, sy);
 
         SDL_Event ev;
         while (SDL_PollEvent(&ev)) {
             if (ev.type == SDL_QUIT) running = false;
             if (ev.type == SDL_MOUSEWHEEL) {
-                if (ev.wheel.y > 0) { if (log_count - VISIBLE_LINES - scroll_offset > 0) scroll_offset++; }
-                else if (ev.wheel.y < 0) { if (scroll_offset > 0) scroll_offset--; }
+                int mx, my;
+                SDL_GetMouseState(&mx, &my);
+                // Check if mouse is hovering over memory area or term area for isolated scrolling
+                if (mx >= mem_rect.x && my >= mem_rect.y && my <= mem_rect.y + mem_rect.h) {
+                    if (ev.wheel.y > 0) { if (mem_scroll_offset > 0) mem_scroll_offset--; }
+                    else if (ev.wheel.y < 0) { if (mem_scroll_offset + VISIBLE_MEM_LINES < mem_count) mem_scroll_offset++; }
+                } else {
+                    if (ev.wheel.y > 0) { if (log_count - VISIBLE_LINES - scroll_offset > 0) scroll_offset++; }
+                    else if (ev.wheel.y < 0) { if (scroll_offset > 0) scroll_offset--; }
+                }
             }
             if (ev.type == SDL_MOUSEBUTTONDOWN && ev.button.button == SDL_BUTTON_LEFT) {
                 int mx = ev.button.x, my = ev.button.y;
@@ -318,6 +398,16 @@ int main(int argc, char **argv) {
         if (s_idx < 0) s_idx = 0;
         for (int i = 0; i < VISIBLE_LINES && (s_idx + i) < log_count; i++) draw_text(ren, f_sml, sx_i(70, sx), sy_i(445 + (i * 28), sy), C_TEXT, log_buffer[s_idx + i]);
         if (scroll_offset > 0) draw_text(ren, f_sml, term_rect.x + term_rect.w - 120, term_rect.y + 10, C_YELLOW, "[SCROLLED UP]");
+
+        // ================= NEW MEMORY BOX =================
+        fill_rect(ren, mem_rect, (SDL_Color){17, 17, 27, 255}); 
+        stroke_rect(ren, mem_rect, C_ACCENT);
+        draw_text(ren, f_bold, sx_i(630, sx), sy_i(310, sy), C_ACCENT, "Memory");
+        
+        for (int i = 0; i < VISIBLE_MEM_LINES && (mem_scroll_offset + i) < mem_count; i++) {
+            draw_text(ren, f_sml, sx_i(630, sx), sy_i(350 + (i * 24), sy), C_TEXT, mem_buffer[mem_scroll_offset + i]);
+        }
+        // ==================================================
 
         bool blink = ((SDL_GetTicks() / 450) % 2) == 0;
         if (is_waiting_for_input) {

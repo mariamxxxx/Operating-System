@@ -65,6 +65,8 @@ Process *execute_hrrn() {
     current->pcb->state = RUNNING;
     update_state_in_memory(current->pcb->pid, RUNNING);
     scheduler_set_last_executed_pid(current->pcb->pid); //gui
+
+    print_memory();
     execute_instruction(current);
 
     if (instruction_stalled_on_input()) {

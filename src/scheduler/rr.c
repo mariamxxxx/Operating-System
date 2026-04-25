@@ -36,6 +36,8 @@ Process* execute_round_robin() {
     current_rr_process->pcb->state = RUNNING;
     update_state_in_memory(current_rr_process->pcb->pid, RUNNING);
     scheduler_set_last_executed_pid(current_rr_process->pcb->pid); //gui
+
+    print_memory();
     execute_instruction(current_rr_process);
 
     if (instruction_stalled_on_input()) {
