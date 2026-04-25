@@ -4,6 +4,7 @@
 
 #include "interpreter/parser.h"
 #include "os/os_core.h"
+#include "gui/gui.h"
 
 static void build_program_path(const char *name, char *out, size_t out_size) {
     if (strchr(name, '/') || strchr(name, '\\')) {
@@ -50,7 +51,9 @@ static SchedulerAlgorithm read_algorithm_choice(void) {
 
 int main(void) {
     int safety_cycles = 1000;
+    gui_log_init();
     printf("main: starting simulator\n");
+    gui_log("main: starting simulator\n");
 
     SchedulerAlgorithm algorithm = read_algorithm_choice();
     os_init(algorithm);
@@ -73,6 +76,7 @@ int main(void) {
                 char path[512];
                 build_program_path(programs[i], path, sizeof(path));
                 printf("main: loading %s at clock=%d\n", path, clock);
+                gui_log("main: loading %s at clock=%d\n", path, clock);
                 loadAndInterpret(path, arrival_times[i]);
                 loaded[i] = 1;
                 remaining_to_load--;
@@ -92,12 +96,18 @@ int main(void) {
                snapshot.current_pid,
                snapshot.ready_queue_size,
                snapshot.blocked_queue_size);
+        gui_log("Tick=%d Running=%d Ready=%d Blocked=%d\n",
+               snapshot.clock_tick,
+               snapshot.current_pid,
+               snapshot.ready_queue_size,
+               snapshot.blocked_queue_size);
 
         if (remaining_to_load == 0 &&
             snapshot.current_pid == -1 &&
             snapshot.ready_queue_size == 0 &&
             snapshot.blocked_queue_size > 0) {
             printf("Simulation stopped: deadlock (all remaining processes are blocked).\n");
+            gui_log("Simulation stopped: deadlock (all remaining processes are blocked).\n");
             break;
         }
        
@@ -107,8 +117,10 @@ int main(void) {
 
     if (safety_cycles <= 0) {
         printf("Simulation stopped by safety limit.\n");
+        gui_log("Simulation stopped by safety limit.\n");
     }
 
+    gui_log_close();
     return 0;
 }
 

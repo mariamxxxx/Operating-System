@@ -8,6 +8,7 @@
 #endif
 #include "syscalls.h"
 #include "../memory/memoryy.h"
+#include "../gui/gui.h"
 
 static void ensure_disk_dir_exists(void) {
 #if defined(_WIN32)
@@ -78,6 +79,7 @@ int writeFile(char* filename, char* content){ //write in file
 
 void printData(char* data ){ //print values
     printf("Printed value: %s \n", data);
+    gui_log("Printed value: %s \n", data);
 }
 
 char* takeInput(){ //take input from user
@@ -96,9 +98,11 @@ char* readFromMemory(int pid, char* varName){//read data from memory
 
     if (res==NULL){
         printf("Variable %s not found in memory for process id %d\n", varName, pid);
+        gui_log("Variable %s not found in memory for process id %d\n", varName, pid);
         return NULL;}
 
     printf("Variable %s found in memory for process id %d with value: %s\n", varName,pid, res);
+    gui_log("Variable %s found in memory for process id %d with value: %s\n", varName,pid, res);
     return res;
 
 }
@@ -107,6 +111,7 @@ void writeToMemory(int pid, char* varName, char* varValue){ //write data to memo
 //ASSUMING WRITE__WORD WILL BE IMPLEMENTED IN MEMORY.C
     write_word(pid, varName, varValue);
     printf("Variable %s with value %s written to memory for process id %d\n", varName, varValue, pid);
+    gui_log("Variable %s with value %s written to memory for process id %d\n", varName, varValue, pid);
 }
 
 char* readInstruction(int pc){
