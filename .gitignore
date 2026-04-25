@@ -34,7 +34,7 @@ out/
 *.temp
 *.swp
 *.swo
-
+*.swap
 # OS files
 Thumbs.db
 ehthumbs.db

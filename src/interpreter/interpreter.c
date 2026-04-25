@@ -78,15 +78,18 @@ static int parse_resource_token(const char *token) {
         return -1;
     }
 
-    if (strcmp(token, "0") == 0 || strcmp(token, "userInput") == 0 || strcmp(token, "USER_INPUT") == 0) {
+    // Group 0: Input variants
+    if (strstr(token, "0") || strstr(token, "userInput") || strstr(token, "USER_INPUT")) {
         return 0;
     }
 
-    if (strcmp(token, "1") == 0 || strcmp(token, "userOutput") == 0 || strcmp(token, "USER_OUTPUT") == 0) {
+    // Group 1: Output variants
+    if (strstr(token, "1") || strstr(token, "userOutput") || strstr(token, "USER_OUTPUT")) {
         return 1;
     }
 
-    if (strcmp(token, "2") == 0 || strcmp(token, "file") == 0 || strcmp(token, "fileResource") == 0 || strcmp(token, "FILE_RESOURCE") == 0) {
+    // Group 2: File variants
+    if (strstr(token, "2") || strstr(token, "file") || strstr(token, "fileResource") || strstr(token, "FILE_RESOURCE")) {
         return 2;
     }
 
@@ -166,15 +169,41 @@ void callWriteFile(char* filename, char* content){
     gui_log("WriteFile done");
 }
 
+// char* callReadFile(char* filename){
+//     gui_log("ReadFile: %s", filename);
+//     char* result = readFromMemory(global_pid, filename);
+//     if (result == NULL) {
+//         gui_log("Variable %s not found in memory for process id %d", filename, global_pid);
+//         return strdup("");  // Return malloced empty string
+//     }
+//     gui_log("ReadFile: got %s", result);
+//     return strdup(result);  // Return malloced copy
+// }
+
+
+
+
+
+
+
+
 char* callReadFile(char* filename){
-    gui_log("ReadFile: %s", filename);
-    char* result = readFromMemory(global_pid, filename);
-    if (result == NULL) {
-        gui_log("Variable %s not found in memory for process id %d", filename, global_pid);
-        return strdup("");  // Return malloced empty string
+    gui_log("=================================================\n");
+    char* resolved_filename = readFromMemory(global_pid, filename);
+    if (resolved_filename == NULL || resolved_filename[0] == '\0') {
+        gui_log("ReadFile: variable %s not found or empty for process id %d\n", filename, global_pid);
+        return strdup("");
     }
-    gui_log("ReadFile: got %s", result);
-    return strdup(result);  // Return malloced copy
+    gui_log("ReadFile: %s\n", resolved_filename);
+    char* result = readFile(resolved_filename);
+    if (result == NULL) {
+        printf("ReadFile: could not open file %s\n", resolved_filename);
+        return strdup("");
+    }
+    gui_log("ReadFile: got file content\n");
+    gui_log("=================================================\n");
+    return result;
+
 }
 
 char* callTakeInput(){
