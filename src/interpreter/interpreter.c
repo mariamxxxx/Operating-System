@@ -78,15 +78,18 @@ static int parse_resource_token(const char *token) {
         return -1;
     }
 
-    if (strcmp(token, "0") == 0 || strcmp(token, "userInput") == 0 || strcmp(token, "USER_INPUT") == 0) {
+    // Group 0: Input variants
+    if (strstr(token, "0") || strstr(token, "userInput") || strstr(token, "USER_INPUT")) {
         return 0;
     }
 
-    if (strcmp(token, "1") == 0 || strcmp(token, "userOutput") == 0 || strcmp(token, "USER_OUTPUT") == 0) {
+    // Group 1: Output variants
+    if (strstr(token, "1") || strstr(token, "userOutput") || strstr(token, "USER_OUTPUT")) {
         return 1;
     }
 
-    if (strcmp(token, "2") == 0 || strcmp(token, "file") == 0 || strcmp(token, "fileResource") == 0 || strcmp(token, "FILE_RESOURCE") == 0) {
+    // Group 2: File variants
+    if (strstr(token, "2") || strstr(token, "file") || strstr(token, "fileResource") || strstr(token, "FILE_RESOURCE")) {
         return 2;
     }
 

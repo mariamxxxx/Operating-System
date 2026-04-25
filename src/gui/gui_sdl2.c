@@ -13,9 +13,9 @@
 #include "../os/syscalls.h"
 #include "../scheduler/scheduler.h"
 
-#define MAX_LOG_LINES 1000
+#define MAX_LOG_LINES 10000
 #define VISIBLE_LINES 10
-#define MAX_INPUT_LEN 64
+#define MAX_INPUT_LEN 512
 #define GUI_BASE_WIDTH 1200
 #define GUI_BASE_HEIGHT 850
 #define GUI_DEFAULT_WIDTH 960
@@ -33,7 +33,7 @@ SDL_Color C_YELLOW  = {249, 226, 175, 255};
 SDL_Color C_INACTIVE= {24, 24, 37, 255}; 
 
 extern char input_text[];
-static char log_buffer[MAX_LOG_LINES][128];
+static char log_buffer[MAX_LOG_LINES][256];
 static int log_count = 0;
 static int scroll_offset = 0; 
 
@@ -132,7 +132,7 @@ void gui_log(const char *format, ...) {
     if (log_count >= MAX_LOG_LINES) return;
     va_list args;
     va_start(args, format);
-    vsnprintf(log_buffer[log_count], 128, format, args);
+    vsnprintf(log_buffer[log_count], sizeof(log_buffer[log_count]), format, args);
     va_end(args);
     capture_input_var_hint_from_log_line(log_buffer[log_count]);
     if (strstr(log_buffer[log_count], "goint to take input") != NULL) is_waiting_for_input = true;
