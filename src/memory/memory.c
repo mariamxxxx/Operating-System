@@ -451,7 +451,7 @@ static void print_swap_file(int pid, const char *action){
             if (i == 0)
                 printf("pid=%d\n", word.payload.pid);
             else if (i == 1)
-                printf("state=%s\n", state_name2(word.payload.state));
+                printf("state=%s\n", word.payload.state);
             else if (i == 2)
                 printf("pc=%d\n", word.payload.program_counter);
             else if (i == 3)
